@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Navbar from "./components/Navbar";
-import { Globe, CopyCheck, ShieldCheck } from "lucide-react";
+import { Globe, CopyCheck, ShieldCheck, HeartHandshake, Instagram, Facebook, Twitter, Linkedin } from "lucide-react";
 import Image from "next/image";
 import { Card, CardContent } from "./components/ui/card";
+import { Separator } from "./components/ui/separator";
 import { Progress } from "./components/ui/progress";
 import { Faqs } from "./components/Faqs";
 
@@ -15,7 +16,7 @@ export default function Home() {
       <div className="w-full px-10 max-[991px]:px-5 mt-[80px]">
         <div className="w-full bg-[url('/assets/help.jpg')] bg-cover bg-center h-[600px] max-[991px]:h-[400px] rounded-[32px]">
           <div className="w-full h-full bg-[rgba(0,0,0,0.5)] rounded-[32px] flex flex-col justify-center p-10 max-md:p-5">
-            <p className="text-white font-semibold mb-2 max-md:text-sm">HelpChain Foundation</p>
+            <p className="text-white font-semibold mb-2 max-md:text-sm">HelpChain Inc.</p>
             <h1 className="font-bold text-white text-7xl mb-3 max-md:text-6xl"><span className="text-lime-300">Help</span> Others</h1>
             <p className="text-white text-xl max-md:text-md font-semibold mb-4">Empower Change With Your Contribution.</p>
             <div className="flex items-center gap-4">
@@ -162,6 +163,7 @@ export default function Home() {
           </div>
         </div>
       </div>
+
       {/* Statistics Section */}
       <div className="bg-[url('/assets/decentralized.png')] bg-cover bg-center">
         <div className="w-full h-full relative pt-10 pb-20 text-center overflow-hidden bg-[rgba(255,255,255,0.7)]">
@@ -204,7 +206,130 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Faq Section */}
       <Faqs />
+
+      {/* Footer Section */}
+      <div className="w-full px-10 max-[991px]:px-5 py-10">
+        <footer className="bg-black text-white px-12 py-12 rounded-[32px]">
+          <div className="flex max-md:flex-col">
+            <div className="mr-12 max-md:mr-0">
+              <div className="flex items-center gap-2 mb-4">
+                <i className="w-8 h-8 text-lime-200 rounded flex items-center justify-center">
+                  <HeartHandshake fill="currentColor" stroke="oklch(45.3% 0.124 130.933)" />
+                </i>
+                <span className="text-xl font-bold">HelpChain</span>
+              </div>
+              <p className="text-gray-200 text-sm leading-relaxed">Proof Of Hope, Empower Change With Your Contribution.</p>
+            </div>
+            <div className="grid md:grid-cols-3 w-full gap-8 mb-8 max-md:mt-8">
+              <div>
+                <h3 className="font-bold mb-4">Donate</h3>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li>
+                    <Link href="#" className="hover:text-white">
+                      Education
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="#" className="hover:text-white">
+                      Social
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="#" className="hover:text-white">
+                      Health
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="#" className="hover:text-white">
+                      Disaster
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-bold mb-4">Help</h3>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li>
+                    <Link href="#" className="hover:text-white">
+                      FAQ
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="#" className="hover:text-white">
+                      Privacy Policy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="#" className="hover:text-white">
+                      Accessibility
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="#" className="hover:text-white">
+                      Contact Us
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-bold mb-4">Company</h3>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li>
+                    <Link href="#" className="hover:text-white">
+                      About Us
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="#" className="hover:text-white">
+                      How It Works
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="#" className="hover:text-white">
+                      Taranium
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="#" className="hover:text-white">
+                      Get Faucet
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <Separator className="bg-gray-800 mb-8" />
+
+          <div className="flex items-center justify-between max-md:flex-col max-md:gap-4 max-md:items-start">
+            <div className="text-sm text-gray-200">
+              <p>© HelpChain 2025</p>
+              <p>All Rights Reserved.</p>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Link href="#" className="text-gray-400 hover:text-white">
+                <Instagram className="w-5 h-5" />
+              </Link>
+              <Link href="#" className="text-gray-400 hover:text-white">
+                <Facebook className="w-5 h-5" />
+              </Link>
+              <Link href="#" className="text-gray-400 hover:text-white">
+                <Twitter className="w-5 h-5" />
+              </Link>
+              <Link href="#" className="text-gray-400 hover:text-white">
+                <Linkedin className="w-5 h-5" />
+              </Link>
+            </div>
+          </div>
+        </footer>
+      </div>
+
     </div>
   );
 }

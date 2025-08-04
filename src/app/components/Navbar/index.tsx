@@ -58,21 +58,21 @@ const Navbar = () => {
                             </Link>
                         </li>
                         <li className="font-semibold max-[991px]:hidden">
-                            <Link href="/" className="relative group flex">
+                            <Link href="/campaigns" className="relative group flex">
                                 <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">
-                                    Donation
+                                    Donate
                                 </span>
                             </Link>
                         </li>
                         <li className="font-semibold max-[991px]:hidden">
-                            <Link href="#about" className="relative group flex">
+                            <Link href="/#about" className="relative group flex">
                                 <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">
                                     About Us
                                 </span>
                             </Link>
                         </li>
                         <li className="font-semibold max-[991px]:hidden">
-                            <Link href="#faqs" className="relative group flex">
+                            <Link href="/#faqs" className="relative group flex">
                                 <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">
                                     How It Works
                                 </span>

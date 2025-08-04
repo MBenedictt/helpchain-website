@@ -10,6 +10,7 @@ interface CampaignCardProps {
     goal: bigint;
     balance: bigint;
     deadline: bigint;
+    owner: string;
 }
 
 function shortenAddress(address: string) {
@@ -19,7 +20,7 @@ function shortenAddress(address: string) {
 export default function CampaignCard({
     address,
     name,
-    description,
+    owner,
     goal,
     balance,
     deadline,
@@ -56,7 +57,7 @@ export default function CampaignCard({
                             }}
                             className="cursor-pointer bg-gray-100 px-2 py-1 rounded border border-gray-300 text-xs text-gray-500 hover:underline mb-1 block w-fit text-left"
                         >
-                            {shortenAddress(address)}
+                            {shortenAddress(owner)}
                         </button>
 
                         <h3 className="font-bold text-gray-900 mb-2">{name}</h3>

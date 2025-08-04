@@ -19,7 +19,7 @@ export async function fetchAllCampaigns() {
         campaigns.map(async (campaign) => {
             const address = campaign.campaignAddress;
 
-            const [name, description, goal, deadline, balance] = await Promise.all([
+            const [name, description, goal, deadline, balance, owner] = await Promise.all([
                 publicClient.readContract({
                     address,
                     abi: crowdfundingAbi,
@@ -45,6 +45,11 @@ export async function fetchAllCampaigns() {
                     abi: crowdfundingAbi,
                     functionName: 'getContractBalance',
                 }) as Promise<bigint>,
+                publicClient.readContract({
+                    address,
+                    abi: crowdfundingAbi,
+                    functionName: 'owner',
+                }) as Promise<string>,
             ]);
 
             return {
@@ -54,6 +59,7 @@ export async function fetchAllCampaigns() {
                 goal,
                 deadline,
                 balance,
+                owner,
             };
         })
     );

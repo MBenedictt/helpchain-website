@@ -11,6 +11,8 @@ import { fetchAllCampaigns } from "@/lib/campaigns";
 import CampaignCard from "./components/CampaignCard";
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import { toast } from "sonner"
+import SkeletonCard from "./components/SkeletonCard";
 
 type Campaign = {
   address: string;
@@ -19,18 +21,30 @@ type Campaign = {
   goal: bigint;
   deadline: bigint;
   balance: bigint;
+  owner: string;
 };
 
 export default function Home() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loadCampaign, setLoadCampaign] = useState(true);
 
-  useEffect(() => {
-    async function load() {
+  const loadCampaigns = async () => {
+    try {
       const data = await fetchAllCampaigns();
       setCampaigns(data);
+    } catch (err) {
+      console.error("Error loading campaigns:", err);
+      toast.error("There was a problem connecting to Taranium Testnet.", {
+        closeButton: true,
+        position: "top-right",
+      });
+    } finally {
+      setLoadCampaign(false);
     }
+  };
 
-    load();
+  useEffect(() => {
+    loadCampaigns();
   }, []);
 
   useEffect(() => {
@@ -53,7 +67,7 @@ export default function Home() {
             <h1 className="font-bold text-white text-7xl mb-3 max-md:text-6xl"><span className="text-lime-300">Help</span> Others</h1>
             <p className="text-white text-xl max-md:text-md font-semibold mb-4">Empower Change With Your Contribution.</p>
             <div className="flex items-center gap-4">
-              <Link href="/" className="px-5 py-3 rounded-lg text-sm font-medium bg-lime-300 text-slate-800 hover:bg-lime-400 transition hover:scale-103">
+              <Link href="/campaigns" className="px-5 py-3 rounded-lg text-sm font-medium bg-lime-300 text-slate-800 hover:bg-lime-400 transition hover:scale-103">
                 Start Donating
               </Link>
               <Link href="https://faucet.taranium.com" target="_blank" className="px-5 py-3 rounded-lg text-sm font-medium bg-[rgba(255,255,255,0.1)] text-white hover:bg-[rgba(255,255,255,0.2)] transition hover:scale-103">
@@ -107,16 +121,28 @@ export default function Home() {
 
         {/* Urgent Fundraising Section */}
         <div className="px-10 max-[991px]:px-5 pb-15">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2" data-aos="fade-right" data-aos-once="true">Urgent Fundraising!</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2" data-aos="fade-right" data-aos-once="true">Latest Campaigns</h2>
           <p className="text-gray-500 mb-6 text-sm sm:text-lg" data-aos="fade-right" data-aos-delay="200" data-aos-once="true">
             Time is of the essence! Join our mission NOW to make an immediate impact. Every second counts!
           </p>
 
-          <div className="grid md:grid-cols-3 gap-6" data-aos="fade-up" data-aos-delay="400" data-aos-once="true">
-            {campaigns.map((campaign) => (
-              <CampaignCard key={campaign.address} {...campaign} />
-            ))}
-          </div>
+          {loadCampaign ? (
+            <div className="grid md:grid-cols-3 gap-6" data-aos="fade-up" data-aos-delay="400" data-aos-once="true">
+              {[...Array(3)].map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          ) : campaigns.length > 0 ? (
+            <div className="grid md:grid-cols-3 gap-6" data-aos="fade-up" data-aos-delay="400" data-aos-once="true">
+              {campaigns.map((campaign) => (
+                <CampaignCard key={campaign.address} {...campaign} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 w-full h-[300px] flex items-center justify-center">
+              No campaigns available yet.
+            </div>
+          )}
         </div>
       </div>
 
@@ -143,7 +169,7 @@ export default function Home() {
           </div>
 
           <div className="relative z-10 flex flex-col items-center">
-            <h2 className="text-lg max-sm:w-3/4 max-sm:text-center sm:text-xl md:text-3xl font-semibold text-gray-900 mb-4" data-aos="fade-down" data-aos-once="true" data-aos-delay="200">
+            <h2 className="text-lg max-sm:w-3/4 max-sm:text-center sm:text-xl md:text-3xl font-semibold text-gray-900 mb-4" data-aos="fade-down" data-aos-once="true">
               Need Help? Get Support Through HelpChain
             </h2>
             <div className="text-5xl md:text-7xl lg:text-8xl font-bold text-gray-900 mb-10 font-serif" data-aos="zoom-in" data-aos-once="true" data-aos-delay="400">
@@ -153,13 +179,15 @@ export default function Home() {
               Campaigns and Lives Impacted Around The World
             </p>
 
-            <Link
-              href="/"
-              className="inline-block px-4 py-2 md:px-5 md:py-3 rounded-lg text-sm md:text-base font-medium bg-lime-300 text-slate-800 hover:bg-lime-400 transition hover:scale-105"
-              data-aos="fade-up" data-aos-once="true"
-            >
-              Create a Campaign
-            </Link>
+            <div data-aos="fade-up" data-aos-once="true">
+              <Link
+                href="/"
+                className="inline-block px-4 py-2 md:px-5 md:py-3 rounded-lg text-sm md:text-base font-medium bg-lime-300 text-slate-800 hover:bg-lime-400 transition hover:scale-103"
+              >
+                Create a Campaign
+              </Link>
+            </div>
+
           </div>
         </div>
       </div>

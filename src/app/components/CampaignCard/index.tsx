@@ -34,7 +34,7 @@ export default function CampaignCard({
 
     return (
         <Link href={`/campaign/${address}`}>
-            <Card className="overflow-hidden hover:shadow-md hover:scale-[1.01] transition-all cursor-pointer px-4 pt-4">
+            <Card className="h-[420px] max-md:h-fit overflow-hidden hover:shadow-md hover:scale-[1.01] transition-all cursor-pointer px-4 pt-4">
                 <div className="relative h-fit">
                     <Image
                         src="/assets/help.jpg"
@@ -51,7 +51,7 @@ export default function CampaignCard({
                                 e.stopPropagation();
                                 e.preventDefault();
                                 window.open(
-                                    `https://testnet-scan.taranium.com/address/${address}?tab=internal_txns`,
+                                    `https://testnet-scan.taranium.com/address/${owner}`,
                                     "_blank"
                                 );
                             }}
@@ -60,7 +60,7 @@ export default function CampaignCard({
                             {shortenAddress(owner)}
                         </button>
 
-                        <h3 className="font-bold text-gray-900 mb-2">{name}</h3>
+                        <h3 className="font-bold text-gray-900 mb-2 line-clamp-2">{name}</h3>
                     </div>
                     <div>
                         <Progress value={progress} />

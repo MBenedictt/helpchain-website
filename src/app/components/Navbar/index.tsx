@@ -60,21 +60,14 @@ const Navbar = () => {
                         <li className="font-semibold max-[991px]:hidden">
                             <Link href="/campaigns" className="relative group flex">
                                 <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">
-                                    Donate
+                                    Campaigns
                                 </span>
                             </Link>
                         </li>
                         <li className="font-semibold max-[991px]:hidden">
-                            <Link href="/#about" className="relative group flex">
+                            <Link href="/dashboard" className="relative group flex">
                                 <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">
-                                    About Us
-                                </span>
-                            </Link>
-                        </li>
-                        <li className="font-semibold max-[991px]:hidden">
-                            <Link href="/#faqs" className="relative group flex">
-                                <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">
-                                    How It Works
+                                    Dashboard
                                 </span>
                             </Link>
                         </li>
@@ -105,23 +98,16 @@ const Navbar = () => {
                             </Link>
                         </li>
                         <li className="font-medium text-xl py-4">
-                            <Link href="/" className="relative group flex w-fit">
+                            <Link href="/campaigns" className="relative group flex w-fit">
                                 <span className="group-hover:after:w-full after:w-0 after:h-0.5 after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300">
-                                    Donation
+                                    Campaigns
                                 </span>
                             </Link>
                         </li>
                         <li className="font-medium text-xl py-4">
-                            <Link href="/" className="relative group flex w-fit">
+                            <Link href="/dashboard" className="relative group flex w-fit">
                                 <span className="group-hover:after:w-full after:w-0 after:h-0.5 after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300">
-                                    How It Works
-                                </span>
-                            </Link>
-                        </li>
-                        <li className="font-medium text-xl py-4">
-                            <Link href="/" className="relative group flex w-fit">
-                                <span className="group-hover:after:w-full after:w-0 after:h-0.5 after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300">
-                                    About Us
+                                    Dashboard
                                 </span>
                             </Link>
                         </li>

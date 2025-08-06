@@ -49,6 +49,7 @@ export default function CampaignsPage() {
         } catch (err) {
             console.error("Failed to fetch campaigns", err);
             toast.error("Failed to fetch campaigns, try again later.", {
+                closeButton: true,
                 position: "top-right",
             });
         } finally {

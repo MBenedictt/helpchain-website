@@ -70,7 +70,7 @@ export default function Home() {
               <Link href="/campaigns" className="px-5 py-3 rounded-lg text-sm font-medium bg-lime-300 text-slate-800 hover:bg-lime-400 transition hover:scale-103">
                 Start Donating
               </Link>
-              <Link href="https://faucet.taranium.com" target="_blank" className="px-5 py-3 rounded-lg text-sm font-medium bg-[rgba(255,255,255,0.1)] text-white hover:bg-[rgba(255,255,255,0.2)] transition hover:scale-103">
+              <Link href="https://www.alchemy.com/faucets/ethereum-sepolia" target="_blank" className="px-5 py-3 rounded-lg text-sm font-medium bg-[rgba(255,255,255,0.1)] text-white hover:bg-[rgba(255,255,255,0.2)] transition hover:scale-103">
                 Get Faucet
               </Link>
             </div>

@@ -8,8 +8,18 @@ export type CampaignStruct = {
     creationTime: bigint;
 };
 
-// Fetch and hydrate ALL campaigns
-export async function fetchAllCampaigns() {
+export type HydratedCampaign = {
+    address: Address;
+    name: string;
+    description: string;
+    goal: bigint;
+    deadline: bigint;
+    balance: bigint;
+    owner: string;
+};
+
+// ─── Fetch All Campaigns ─────────────────────────────────────────────
+export async function fetchAllCampaigns(): Promise<HydratedCampaign[]> {
     const campaigns = await publicClient.readContract({
         address: factoryAddress,
         abi: crowdfundingFactoryAbi,
@@ -19,7 +29,7 @@ export async function fetchAllCampaigns() {
     return await hydrateCampaigns(campaigns);
 }
 
-// Fetch and hydrate paginated campaigns
+// ─── Fetch Paginated Campaigns ──────────────────────────────────────
 export async function getPaginatedCampaigns(page: number, perPage: number) {
     const campaigns = await publicClient.readContract({
         address: factoryAddress,
@@ -36,8 +46,8 @@ export async function getPaginatedCampaigns(page: number, perPage: number) {
     };
 }
 
-// Hydrate a single campaign by address
-export async function fetchCampaignByAddress(address: string) {
+// ─── Fetch Campaign by Address ──────────────────────────────────────
+export async function fetchCampaignByAddress(address: string): Promise<HydratedCampaign | null> {
     try {
         return await hydrateCampaign({ campaignAddress: address as Address } as CampaignStruct);
     } catch (error) {
@@ -46,15 +56,31 @@ export async function fetchCampaignByAddress(address: string) {
     }
 }
 
-// Helper: hydrate a list of CampaignStructs
-async function hydrateCampaigns(campaigns: CampaignStruct[]) {
+// ─── Fetch User Campaigns ───────────────────────────────────────────
+export async function fetchUserCampaigns(address: Address): Promise<HydratedCampaign[]> {
+    try {
+        const campaigns = await publicClient.readContract({
+            address: factoryAddress,
+            abi: crowdfundingFactoryAbi,
+            functionName: 'getUserCampaigns',
+            args: [address],
+        }) as CampaignStruct[];
+
+        return await hydrateCampaigns(campaigns);
+    } catch (err) {
+        console.error('Failed to fetch user campaigns:', err);
+        return [];
+    }
+}
+
+// ─── Hydrate Helpers ────────────────────────────────────────────────
+async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCampaign[]> {
     return await Promise.all(
-        campaigns.map(async (campaign) => hydrateCampaign(campaign))
+        campaigns.map(c => hydrateCampaign(c))
     );
 }
 
-// Helper: hydrate a single campaign
-async function hydrateCampaign(campaign: CampaignStruct) {
+async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampaign> {
     const address = campaign.campaignAddress;
 
     const [name, description, goal, deadline, balance, owner] = await Promise.all([

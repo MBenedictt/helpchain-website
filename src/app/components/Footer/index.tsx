@@ -84,12 +84,12 @@ const Footer = () => {
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="https://taranium.foundation/" target="_blank" className="hover:text-white">
-                                        Taranium
+                                    <Link href="https://sepolia.etherscan.io/" target="_blank" className="hover:text-white">
+                                        Sepolia
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="https://faucet.taranium.com" target="_blank" className="hover:text-white">
+                                    <Link href="https://www.alchemy.com/faucets/ethereum-sepolia" target="_blank" className="hover:text-white">
                                         Get Faucet
                                     </Link>
                                 </li>

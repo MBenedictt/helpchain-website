@@ -51,7 +51,7 @@ export default function CampaignCard({
                                 e.stopPropagation();
                                 e.preventDefault();
                                 window.open(
-                                    `https://testnet-scan.taranium.com/address/${owner}`,
+                                    `https://sepolia.etherscan.io/address/${owner}`,
                                     "_blank"
                                 );
                             }}

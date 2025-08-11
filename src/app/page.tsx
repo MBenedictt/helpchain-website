@@ -119,7 +119,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Urgent Fundraising Section */}
+        {/* New Campaign Section */}
         <div className="px-10 max-[991px]:px-5 pb-15">
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2" data-aos="fade-right" data-aos-once="true">Latest Campaigns</h2>
           <p className="text-gray-500 mb-6 text-sm sm:text-lg" data-aos="fade-right" data-aos-delay="200" data-aos-once="true">

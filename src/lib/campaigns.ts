@@ -8,6 +8,12 @@ export type CampaignStruct = {
     creationTime: bigint;
 };
 
+export type Tier = {
+    name: string;
+    amount: bigint;
+    backers: bigint;
+};
+
 export type HydratedCampaign = {
     address: Address;
     name: string;
@@ -16,6 +22,8 @@ export type HydratedCampaign = {
     deadline: bigint;
     balance: bigint;
     owner: string;
+    tiers: Tier[];
+    paused: boolean;
 };
 
 // ─── Fetch All Campaigns ─────────────────────────────────────────────
@@ -83,13 +91,15 @@ async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCa
 async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampaign> {
     const address = campaign.campaignAddress;
 
-    const [name, description, goal, deadline, balance, owner] = await Promise.all([
+    const [name, description, goal, deadline, balance, owner, tiers, paused] = await Promise.all([
         publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'campaign' }) as Promise<string>,
         publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'description' }) as Promise<string>,
         publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'goal' }) as Promise<bigint>,
         publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'deadline' }) as Promise<bigint>,
         publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'getContractBalance' }) as Promise<bigint>,
         publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'owner' }) as Promise<string>,
+        publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'getTiers' }) as Promise<Tier[]>,
+        publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'paused' }) as Promise<boolean>
     ]);
 
     return {
@@ -100,5 +110,7 @@ async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampai
         deadline,
         balance,
         owner,
+        tiers,
+        paused
     };
 }

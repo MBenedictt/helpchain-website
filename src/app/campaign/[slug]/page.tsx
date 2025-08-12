@@ -20,6 +20,10 @@ type Campaign = {
     owner: string;
 };
 
+function shortenAddress(address: string) {
+    return `${address.slice(0, 8)}...${address.slice(-8)}`;
+}
+
 export default function CampaignPage() {
     const { slug } = useParams();
     const [campaign, setCampaign] = useState<Campaign | null>(null);
@@ -70,10 +74,13 @@ export default function CampaignPage() {
                                 <p className="text-sm">Deadline: {new Date(Number(campaign!.deadline) * 1000).toLocaleString()}</p>
                             </div>
                         </div>
-                        <div className="border-b border-gray-300 mb-4 pb-4 text-sm">
-                            <p className="mb-1">Organized by: </p>
-                            <Link href={`https://sepolia.etherscan.io/address/${campaign!.owner}`} target="_blank" className="text-gray-500 hover:text-gray-600 hover:underline">{campaign!.owner}</Link>
+                        <div className="border-b border-gray-300 mb-4 pb-4">
+                            <p className="mb-1">Campaign Address: </p>
+                            <Link href={`https://sepolia.etherscan.io/address/${campaign!.address}`} className="text-gray-500 hover:text-gray-600 hover:underline">{shortenAddress(campaign!.address)}</Link>
+                            <p className="mb-1 mt-2">Organized by: </p>
+                            <Link href={`https://sepolia.etherscan.io/address/${campaign!.owner}`} target="_blank" className="text-gray-500 hover:text-gray-600 hover:underline">{shortenAddress(campaign!.owner)}</Link>
                         </div>
+                        <h1 className="mb-2">Description</h1>
                         <p className="text-gray-500 mb-2">{campaign!.description}</p>
                     </div>
                     <div className="w-4/12 sticky top-20 h-fit rounded shadow-md">KONTOL</div>

@@ -9,9 +9,12 @@ import Navbar from '../components/Navbar';
 import { Separator } from '../components/ui/separator';
 import CreateCampaignButton from '../components/CreateCampaignButton';
 import SkeletonCard from '../components/SkeletonCard';
-import { Ban, BanknoteArrowDown, Plus, Power } from 'lucide-react';
+import { Ban, BanknoteArrowDown, ExternalLink, Power } from 'lucide-react';
 import { togglePause } from '@/lib/toggle-paused';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
+import AddTiersButton from '../components/AddTierButton';
+import Link from 'next/link';
 
 type Campaign = {
     address: string;
@@ -96,7 +99,17 @@ export default function Dashboard() {
                                     key={i}
                                     className="p-4 border rounded-lg shadow-sm bg-white"
                                 >
-                                    <h2 className="text-lg font-bold mb-1">{c.name}</h2>
+                                    <div className='flex items-center gap-2 mb-1'>
+                                        <h2 className="text-lg font-bold">{c.name}</h2>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Link href={`https://sepolia.etherscan.io/address/${c.address}`} target="_blank" className='text-gray-400 hover:text-gray-600 bg-gray-100 p-1 rounded transition'><ExternalLink size={16} /></Link>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>View on-chain</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
                                     <div
                                         className={`px-3 py-1 rounded-full text-[10px] font-medium w-fit mb-2
                                         ${c.paused ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}
@@ -123,38 +136,48 @@ export default function Dashboard() {
                                         )}
 
                                         {!c.paused && (
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <button
-                                                        className="cursor-pointer bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold p-2 rounded"
-                                                    >
-                                                        <Plus size={16} />
-                                                    </button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Add Tiers</p>
-                                                </TooltipContent>
-                                            </Tooltip>
+                                            <AddTiersButton campaignAddress={c.address as Address} />
                                         )}
 
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <button
-                                                    onClick={() => handleActive(c.address as Address)}
-                                                    className={`cursor-pointer text-sm font-bold p-2 rounded transition text-white
-                                                    ${c.paused ? "bg-blue-500 hover:bg-blue-700" : "bg-red-500 hover:bg-red-700"}`}
-                                                >
-                                                    {c.paused ? (
-                                                        <Power size={16} />
-                                                    ) : (
-                                                        <Ban size={16} />
-                                                    )}
-                                                </button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>{c.paused ? "Activate" : "Deactivate"}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
+                                        <AlertDialog>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <AlertDialogTrigger asChild>
+                                                        <button
+                                                            className={`cursor-pointer text-sm font-bold p-2 rounded transition text-white
+                                                            ${c.paused ? "bg-blue-500 hover:bg-blue-700" : "bg-red-500 hover:bg-red-700"}`}
+                                                        >
+                                                            {c.paused ? <Power size={16} /> : <Ban size={16} />}
+                                                        </button>
+                                                    </AlertDialogTrigger>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{c.paused ? "Activate" : "Deactivate"}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>
+                                                        {c.paused ? "Activate Campaign?" : "Deactivate Campaign?"}
+                                                    </AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        {c.paused
+                                                            ? "This will make the campaign active and visible to donors."
+                                                            : "This will hide the campaign from new contributions. You can activate it again at any time."}
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel className='cursor-pointer'>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        className='cursor-pointer bg-lime-300 hover:bg-lime-400 text-black'
+                                                        onClick={() => handleActive(c.address as Address)}
+                                                    >
+                                                        {c.paused ? "Activate" : "Deactivate"}
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </div>
                                 </div>
                             );

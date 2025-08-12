@@ -82,7 +82,15 @@ export default function CreateCampaignButton() {
     };
 
     return (
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+                setDialogOpen(open);
+                if (!open) {
+                    form.reset();
+                }
+            }}
+        >
             <DialogTrigger asChild>
                 <button className="cursor-pointer px-5 py-3 rounded-lg text-sm font-medium bg-lime-300 text-slate-800 hover:bg-lime-400 transition hover:scale-103">
                     Create Campaign
@@ -94,6 +102,9 @@ export default function CreateCampaignButton() {
                     <DialogTitle>Create a New Campaign</DialogTitle>
                     <DialogDescription>
                         Fill out the details below to launch a new fundraising campaign.
+                    </DialogDescription>
+                    <DialogDescription>
+                        In this campaign, <span className='font-semibold text-black'>1 wei equals $1</span>.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -122,7 +133,7 @@ export default function CreateCampaignButton() {
                                 name="goal"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className='font-[400] text-gray-600'>Goal (in wei, 1 wei = $1)</FormLabel>
+                                        <FormLabel className='font-[400] text-gray-600'>Goal</FormLabel>
                                         <FormControl>
                                             <Input
                                                 type="text"

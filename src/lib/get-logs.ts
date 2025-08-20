@@ -1,5 +1,4 @@
-import { publicClient } from "./contracts";
-import { formatUnits } from "viem";
+import { supabaseClient } from "./supabase/supabaseClient";
 import type { Address } from "viem";
 
 export type DonationLog = {
@@ -11,31 +10,24 @@ export type DonationLog = {
 };
 
 export async function fetchDonationLogs(campaignAddress: Address): Promise<DonationLog[]> {
-    const currentBlock = await publicClient.getBlockNumber();
+    const { data, error } = await supabaseClient
+        .from("donations")
+        .select("*")
+        .eq("campaign_address", campaignAddress.toLowerCase())
+        .order("block_time", { ascending: false })
+        .limit(5);
 
-    const logs = await publicClient.getLogs({
-        address: campaignAddress,
-        event: {
-            type: "event",
-            name: "DonationReceived",
-            inputs: [
-                { indexed: true, name: "backer", type: "address" },
-                { indexed: false, name: "amount", type: "uint256" },
-                { indexed: false, name: "tierIndex", type: "uint256" },
-                { indexed: false, name: "timestamp", type: "uint256" },
-            ],
-        },
-        fromBlock: currentBlock > BigInt(600) ? currentBlock - BigInt(600) : BigInt(0),
-        toBlock: "latest",
-    });
+    if (error) {
+        console.error("Error fetching donations:", error);
+        return [];
+    }
 
-    const parsedLogs = logs.map((log) => ({
-        backer: log.args.backer as Address,
-        amount: formatUnits(log.args.amount as bigint, 0),
-        tierIndex: Number(log.args.tierIndex),
-        timestamp: new Date(Number(log.args.timestamp) * 1000).toLocaleString(),
-        txHash: log.transactionHash,
+    // map to match DonationLog type
+    return data.map((row) => ({
+        backer: row.backer as Address,
+        amount: row.amount.toString(),
+        tierIndex: row.tier_index,
+        timestamp: new Date(row.block_time).toLocaleString(),
+        txHash: row.tx_hash,
     }));
-
-    return parsedLogs.slice(-5).reverse();
 }

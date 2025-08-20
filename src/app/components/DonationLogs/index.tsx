@@ -1,20 +1,12 @@
-
-import { DonationLog, fetchDonationLogs } from "@/lib/get-logs";
+import { DonationLog } from "@/lib/get-logs";
 import { DollarSign } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 function shortenAddress(address: string) {
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
 
-export default function DonationLogs({ campaignAddress }: { campaignAddress: string }) {
-    const [donations, setDonations] = useState<DonationLog[]>([]);
-
-    useEffect(() => {
-        fetchDonationLogs(campaignAddress as `0x${string}`).then(setDonations);
-    }, [campaignAddress]);
-
+export default function DonationLogs({ donations }: { donations: DonationLog[] }) {
     if (donations.length === 0) {
         return (
             <div className="my-4 text-gray-500">

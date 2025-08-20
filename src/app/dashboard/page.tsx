@@ -15,6 +15,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/toolti
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
 import AddTiersButton from '../components/AddTierButton';
 import Link from 'next/link';
+import { fetchUserContributions } from '@/lib/user-contribution';
+import { fetchDonatedCampaigns } from '@/lib/donated-campaigns';
 
 type Campaign = {
     address: string;
@@ -32,12 +34,18 @@ type Campaign = {
     paused: boolean;
 };
 
+type Contribution = {
+    campaign: Address;
+    totalContribution: number;
+};
+
 export default function Dashboard() {
     const { address, isConnected } = useAccount();
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [loading, setLoading] = useState(true);
+    const [donatedCampaigns, setDonatedCampaigns] = useState<Contribution[]>([]);
 
-    async function load() {
+    async function loadUserCampaigns() {
         if (!address) return;
         setLoading(true);
         const data = await fetchUserCampaigns(address as Address);
@@ -45,8 +53,26 @@ export default function Dashboard() {
         setLoading(false);
     }
 
+    async function loadDonatedCampaigns() {
+        if (!address) return;
+        setLoading(true);
+        try {
+            // 1. Get campaigns user has backed
+            const campaigns = await fetchDonatedCampaigns(address as Address);
+
+            // 2. For each campaign, get totalContribution from contract
+            const result = await fetchUserContributions(address as Address, campaigns);
+            setDonatedCampaigns(result);
+        } catch (err) {
+            console.error("Error loading contributions:", err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
     useEffect(() => {
-        load();
+        loadUserCampaigns();
+        loadDonatedCampaigns();
     }, [address]);
 
     const handleActive = async (campaignAddress: Address) => {
@@ -72,7 +98,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="max-[991px]:mt-5">
-                        <CreateCampaignButton onCampaignCreated={load} />
+                        <CreateCampaignButton onCampaignCreated={loadUserCampaigns} />
                     </div>
                 </div>
 
@@ -185,6 +211,28 @@ export default function Dashboard() {
                         })}
                     </div>
                 )}
+                <div className="p-6 space-y-4">
+                    <h2 className="text-xl font-bold">
+                        Address {address}
+                    </h2>
+                    {donatedCampaigns.length === 0 ? (
+                        <p>No contributions yet.</p>
+                    ) : (
+                        <ul className="space-y-2">
+                            {donatedCampaigns.map((c) => (
+                                <li
+                                    key={c.campaign}
+                                    className="p-4 rounded-lg shadow bg-white"
+                                >
+                                    <p className="font-mono text-sm">Campaign: {c.campaign}</p>
+                                    <p className="font-semibold">
+                                        Contribution: ${c.totalContribution}
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
 
             </div>
         </div>

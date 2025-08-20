@@ -25,6 +25,7 @@ import { publicClient, walletClient } from "@/lib/contracts";
 import DonationLogs from "@/app/components/DonationLogs";
 import Footer from "@/app/components/Footer";
 import LoadingPage from "@/app/components/LoadingPage";
+import { DonationLog, fetchDonationLogs } from "@/lib/get-logs";
 
 type Campaign = {
     address: string;
@@ -66,6 +67,8 @@ export default function CampaignPage() {
     const { slug } = useParams();
     const [campaign, setCampaign] = useState<Campaign | null>(null);
     const [loading, setLoading] = useState(true);
+    const [sendingFund, setSendingFund] = useState(false);
+    const [donations, setDonations] = useState<DonationLog[]>([]);
 
     const form = useForm<z.infer<typeof donationSchema>>({
         resolver: zodResolver(donationSchema),
@@ -82,10 +85,16 @@ export default function CampaignPage() {
                 notFound();
                 return;
             }
+
             setCampaign(data);
+
+            // fetch donations immediately after campaign loads
+            const logs = await fetchDonationLogs(data.address as `0x${string}`);
+            setDonations(logs);
+
         } catch (err) {
-            console.error("Error loading campaigns:", err);
-            toast.error("Failed to fetch campaigns, try again later.", {
+            console.error("Error loading campaign or donations:", err);
+            toast.error("Failed to fetch campaign or donations, try again later.", {
                 closeButton: true,
                 position: "top-right",
             });
@@ -117,6 +126,7 @@ export default function CampaignPage() {
 
             const [account] = await walletClient.getAddresses();
 
+            setSendingFund(true);
             toast.loading("Sending donation...");
 
             const txHash = await fundCampaign(
@@ -129,25 +139,23 @@ export default function CampaignPage() {
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
 
-            // exact block timestamp
             const block = await publicClient.getBlock({ blockNumber: receipt.blockNumber });
             const blockTimestampSec = Number(block.timestamp);
 
-            // push to Supabase via server route
             await fetch("/api/donation-log", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     campaignAddress: campaign!.address,
                     backer: account,
-                    amountWei: String(amountToSend),    // in wei
+                    amountWei: String(amountToSend),
                     tierIndex: tierIndexToSend,
                     txHash,
                     blockTimestampSec,
                 }),
             });
 
-            await load(); // reload fresh campaign data
+            await load();
 
             toast.dismiss();
             toast.success("Donation sent!", {
@@ -166,6 +174,8 @@ export default function CampaignPage() {
                 closeButton: true,
                 position: "top-right",
             });
+        } finally {
+            setSendingFund(false);
         }
     };
 
@@ -232,7 +242,16 @@ export default function CampaignPage() {
                         <p className="text-gray-500 mb-2">{campaign!.description}</p>
                         <div className="mt-4 pt-4 border-t border-gray-300">
                             <h1 className="mb-4 font-bold">Donation History</h1>
-                            <DonationLogs campaignAddress={campaign!.address} />
+                            <DonationLogs donations={donations} />
+                            <div className="flex items-center mt-4">
+                                <Link
+                                    href={`https://sepolia.etherscan.io/address/${campaign!.address}`}
+                                    target="_blank"
+                                    className="text-gray-700 hover:text-lime-500 underline"
+                                >
+                                    View More on Etherscan
+                                </Link>
+                            </div>
                         </div>
                     </div>
 
@@ -317,8 +336,13 @@ export default function CampaignPage() {
                                         {form.formState.errors.root.message}
                                     </p>
                                 )}
-                                <button type="submit" className="w-full py-3 bg-lime-300 hover:bg-lime-400 text-black rounded-lg text-md font-semibold cursor-pointer transition">
-                                    Donate Now
+                                <button
+                                    type="submit"
+                                    disabled={sendingFund}
+                                    className={`w-full py-3 rounded-lg text-md font-semibold cursor-pointer transition 
+                                    ${sendingFund ? "bg-gray-300 text-gray-700 cursor-not-allowed" : "bg-lime-300 hover:bg-lime-400 text-black"}`}
+                                >
+                                    {sendingFund ? "Sending fund..." : "Donate Now"}
                                 </button>
                             </form>
                         </Form>

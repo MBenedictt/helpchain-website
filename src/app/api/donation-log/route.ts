@@ -7,19 +7,19 @@ export async function POST(req: Request) {
         const body = await req.json() as {
             campaignAddress: `0x${string}`;
             backer: `0x${string}`;
-            amountWei: string;   // pass as string
+            amountWei: string;
             tierIndex: number;
             txHash: `0x${string}`;
-            blockTimestampSec: number; // unix seconds (from client)
+            blockTimestampSec: number;
         };
 
-        // 1) Upsert the new donation (idempotent if retried)
+        // Upsert the new donation
         const { error: upsertErr } = await supabaseAdmin
             .from("donations")
             .upsert([{
-                campaign_address: body.campaignAddress,
-                backer: body.backer,
-                amount: body.amountWei,                // numeric accepts string
+                campaign_address: body.campaignAddress.toLowerCase(),
+                backer: body.backer.toLowerCase(),
+                amount: body.amountWei,
                 tier_index: body.tierIndex,
                 block_time: new Date(body.blockTimestampSec * 1000).toISOString(),
                 tx_hash: body.txHash,
@@ -27,13 +27,13 @@ export async function POST(req: Request) {
 
         if (upsertErr) throw upsertErr;
 
-        // 2) Delete anything older than the latest 5 for this campaign
+        // Delete anything older than the latest 5 for this campaign
         const { data: old } = await supabaseAdmin
             .from("donations")
             .select("id")
-            .eq("campaign_address", body.campaignAddress)
+            .eq("campaign_address", body.campaignAddress.toLowerCase())
             .order("block_time", { ascending: false })
-            .range(5, 999); // rows after the top 5
+            .range(5, 999);
 
         if (old && old.length) {
             const ids = old.map(r => r.id);
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ ok: true });
     } catch (e: any) {
-        console.error("[save-donation] error:", e);
+        console.error("save donation error:", e);
         return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
     }
 }

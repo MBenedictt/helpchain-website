@@ -21,7 +21,7 @@ import {
 } from "@/app/components/ui/form";
 import { fundCampaign } from "@/lib/fund";
 import { Address } from "viem";
-import { publicClient } from "@/lib/contracts";
+import { publicClient, walletClient } from "@/lib/contracts";
 import DonationLogs from "@/app/components/DonationLogs";
 import Footer from "@/app/components/Footer";
 import LoadingPage from "@/app/components/LoadingPage";
@@ -111,6 +111,12 @@ export default function CampaignPage() {
         }
 
         try {
+            if (!walletClient) {
+                throw new Error("Please connect your wallet.");
+            }
+
+            const [account] = await walletClient.getAddresses();
+
             toast.loading("Sending donation...");
 
             const txHash = await fundCampaign(
@@ -121,7 +127,25 @@ export default function CampaignPage() {
 
             toast.loading("Waiting for confirmation...");
 
-            await publicClient.waitForTransactionReceipt({ hash: txHash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+            // exact block timestamp
+            const block = await publicClient.getBlock({ blockNumber: receipt.blockNumber });
+            const blockTimestampSec = Number(block.timestamp);
+
+            // push to Supabase via server route
+            await fetch("/api/donation-log", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    campaignAddress: campaign!.address,
+                    backer: account,
+                    amountWei: String(amountToSend),    // in wei
+                    tierIndex: tierIndexToSend,
+                    txHash,
+                    blockTimestampSec,
+                }),
+            });
 
             await load(); // reload fresh campaign data
 
@@ -223,7 +247,7 @@ export default function CampaignPage() {
                                 <p className="text-gray-600 text-sm mt-2">Quick Selection</p>
                                 <div className="grid grid-cols-3 gap-2">
                                     {campaign!.tiers.length === 0 ? (
-                                        <p className="col-span-3 text-center text-gray-500 text-sm">
+                                        <p className="col-span-3 text-center text-gray-500 text-sm italic mb-2">
                                             No tiers available for this campaign.
                                         </p>
                                     ) : (

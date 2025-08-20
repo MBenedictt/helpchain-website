@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { Address } from 'viem';
 
 import {
@@ -29,6 +29,12 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 import { addTier } from '@/lib/add-tier';
+import { removeTier } from '@/lib/remove-tier';
+import { Badge } from '../ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import { fetchCampaignByAddress } from '@/lib/campaigns';
+import { publicClient } from '@/lib/contracts';
+import { toast } from 'sonner';
 
 // Schema for validation
 const formSchema = z.object({
@@ -43,9 +49,18 @@ interface AddTiersButtonProps {
     campaignAddress: Address;
 }
 
+interface Tier {
+    name: string;
+    amount: bigint;
+    backers: bigint;
+}
+
 export default function AddTiersButton({ campaignAddress }: AddTiersButtonProps) {
+    const [tiers, setTiers] = useState<Tier[]>([]);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [selectedTier, setSelectedTier] = useState<{ index: number; name: string } | null>(null);
+    const [removing, setRemoving] = useState(false);
 
     const form = useForm({
         resolver: zodResolver(formSchema),
@@ -55,23 +70,84 @@ export default function AddTiersButton({ campaignAddress }: AddTiersButtonProps)
         }
     });
 
+    const refreshTiers = async () => {
+        const campaign = await fetchCampaignByAddress(campaignAddress);
+        if (campaign) setTiers(campaign.tiers);
+    };
+
+    const handleRemoveTier = async () => {
+        if (!selectedTier) return;
+        try {
+            setRemoving(true);
+            toast.loading("Sending transaction...");
+
+            const txHash = await removeTier(campaignAddress, selectedTier.index);
+
+            toast.loading("Waiting for confirmation...");
+
+            await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+            await refreshTiers();
+
+            toast.dismiss();
+            toast.success("Tier removed successfully!", {
+                closeButton: true,
+                position: "top-right",
+            });
+
+            setSelectedTier(null);
+        } catch (err) {
+            toast.dismiss();
+            console.error("Failed to remove tier:", err);
+            toast.error("Failed to remove tier, try again later.", {
+                closeButton: true,
+                position: "top-right",
+            });
+        } finally {
+            setRemoving(false);
+        }
+    };
+
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setSubmitting(true);
         try {
-            const tx = await addTier(
+            toast.loading("Sending transaction...");
+
+            const txHash = await addTier(
                 campaignAddress,
                 values.name,
                 BigInt(values.amount)
             );
-            console.log('Tier added! Tx hash:', tx);
+
+            toast.loading("Waiting for confirmation...");
+
+            await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+            await refreshTiers();
+
+            toast.dismiss();
+            toast.success("Tier added successfully!", {
+                closeButton: true,
+                position: "top-right",
+            });
+
             form.reset();
             setDialogOpen(false);
         } catch (error) {
-            console.error('Error adding tier:', error);
+            toast.dismiss();
+            console.error("Error adding tier:", error);
+            toast.error("Failed to add tier, try again later.", {
+                closeButton: true,
+                position: "top-right",
+            });
         } finally {
             setSubmitting(false);
         }
     };
+
+    useEffect(() => {
+        refreshTiers();
+    }, [campaignAddress]);
 
     return (
         <Dialog
@@ -153,6 +229,50 @@ export default function AddTiersButton({ campaignAddress }: AddTiersButtonProps)
                                 </FormItem>
                             )}
                         />
+
+                        <p className="font-[400] text-gray-600 text-sm mb-2">Existing Tiers</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                            {tiers.length === 0 ? (
+                                <p className="text-gray-400 text-sm italic">No tiers available</p>
+                            ) : (
+                                tiers.map((tier, index) => (
+                                    <Badge key={index} variant="secondary" className="flex items-center gap-1 py-1">
+                                        {tier.name} - ${Number(tier.amount)}
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <button
+                                                    className="ml-1 p-0.5 rounded hover:bg-gray-200 cursor-pointer"
+                                                    onClick={() => setSelectedTier({ index, name: tier.name })}
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Remove Tier</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Are you sure you want to delete the tier{" "}
+                                                        <b>{selectedTier?.name}</b>? This action cannot be undone.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel onClick={() => setSelectedTier(null)} className='cursor-pointer'>
+                                                        Cancel
+                                                    </AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={handleRemoveTier}
+                                                        disabled={removing}
+                                                        className="cursor-pointer bg-lime-300 hover:bg-lime-400 text-black flex items-center justify-center"
+                                                    >
+                                                        {removing ? "Deleting..." : "Delete"}
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </Badge>
+                                ))
+                            )}
+                        </div>
 
                         {/* Submit Button */}
                         <Button

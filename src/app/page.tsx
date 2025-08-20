@@ -22,6 +22,7 @@ type Campaign = {
   deadline: bigint;
   balance: bigint;
   owner: string;
+  paused: boolean;
 };
 
 export default function Home() {
@@ -134,9 +135,13 @@ export default function Home() {
             </div>
           ) : campaigns.length > 0 ? (
             <div className="grid md:grid-cols-3 gap-6" data-aos="fade-up" data-aos-delay="400" data-aos-once="true">
-              {campaigns.map((campaign) => (
-                <CampaignCard key={campaign.address} {...campaign} />
-              ))}
+              {campaigns
+                .filter((campaign) => !campaign.paused)
+                .reverse()
+                .slice(0, 3)
+                .map((campaign) => (
+                  <CampaignCard key={campaign.address} {...campaign} />
+                ))}
             </div>
           ) : (
             <div className="text-center text-gray-500 w-full h-[300px] flex items-center justify-center">

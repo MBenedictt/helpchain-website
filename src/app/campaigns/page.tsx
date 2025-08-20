@@ -27,6 +27,7 @@ type Campaign = {
     deadline: bigint;
     balance: bigint;
     owner: string;
+    paused: boolean;
 };
 
 const PER_PAGE = 6;
@@ -116,9 +117,12 @@ export default function CampaignsPage() {
                     ) : (
                         <>
                             <div className="grid md:grid-cols-3 gap-6 mb-10">
-                                {campaigns.map((campaign) => (
-                                    <CampaignCard key={campaign.address} {...campaign} />
-                                ))}
+                                {campaigns
+                                    .filter((campaign) => !campaign.paused)
+                                    .reverse()
+                                    .map((campaign) => (
+                                        <CampaignCard key={campaign.address} {...campaign} />
+                                    ))}
                             </div>
 
                             {/* Pagination */}

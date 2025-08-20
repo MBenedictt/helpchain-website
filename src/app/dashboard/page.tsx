@@ -37,14 +37,15 @@ export default function Dashboard() {
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [loading, setLoading] = useState(true);
 
+    async function load() {
+        if (!address) return;
+        setLoading(true);
+        const data = await fetchUserCampaigns(address as Address);
+        setCampaigns(data);
+        setLoading(false);
+    }
+
     useEffect(() => {
-        async function load() {
-            if (!address) return;
-            setLoading(true);
-            const data = await fetchUserCampaigns(address as Address);
-            setCampaigns(data);
-            setLoading(false);
-        }
         load();
     }, [address]);
 
@@ -71,7 +72,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="max-[991px]:mt-5">
-                        <CreateCampaignButton />
+                        <CreateCampaignButton onCampaignCreated={load} />
                     </div>
                 </div>
 

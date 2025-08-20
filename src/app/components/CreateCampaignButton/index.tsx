@@ -28,6 +28,7 @@ import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
+import { publicClient } from '@/lib/contracts';
 
 const formSchema = z.object({
     name: z.string().min(1, 'Campaign name is required'),
@@ -42,7 +43,11 @@ const formSchema = z.object({
     description: z.string().min(1, 'Description is required'),
 })
 
-export default function CreateCampaignButton() {
+type CreateCampaignButtonProps = {
+    onCampaignCreated?: () => void;
+};
+
+export default function CreateCampaignButton({ onCampaignCreated }: CreateCampaignButtonProps) {
     const [creating, setCreating] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -59,19 +64,34 @@ export default function CreateCampaignButton() {
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setCreating(true);
         try {
-            const tx = await createCampaign({
+            toast.loading("Submitting transaction...");
+
+            const txHash = await createCampaign({
                 name: values.name,
                 description: values.description,
                 goal: BigInt(values.goal),
                 duration: BigInt(values.duration),
             });
 
-            console.log('Tx submitted:', tx);
+            toast.loading("Waiting for confirmation...");
+            await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+            toast.dismiss();
+            toast.success("Campaign added successfully!", {
+                closeButton: true,
+                position: "top-right",
+            });
 
             form.reset();
             setDialogOpen(false);
+
+            if (onCampaignCreated) {
+                onCampaignCreated();
+            }
+
         } catch (error) {
-            console.error('Failed to create campaign:', error);
+            toast.dismiss();
+            console.error("Failed to create campaign:", error);
             toast.error("Failed to create campaign, try again later.", {
                 closeButton: true,
                 position: "top-right",

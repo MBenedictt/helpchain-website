@@ -1,6 +1,5 @@
 "use client";
 
-/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import { HeartHandshake, Menu, X } from 'lucide-react';
 import Link from "next/link";
@@ -9,23 +8,18 @@ import CustomWalletButton from "../CustomWalletButton";
 const Navbar = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [showNavbar, setShowNavbar] = useState(true);
+    const [hydrated, setHydrated] = useState(false); // <-- hydration flag
 
     const toggleDrawer = () => setIsDrawerOpen(!isDrawerOpen);
 
     useEffect(() => {
+        setHydrated(true); // mark client-side rendering complete
+
         let lastScrollY = window.scrollY;
 
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
-
-            if (currentScrollY > lastScrollY && currentScrollY > 50) {
-                // scrolling down
-                setShowNavbar(false);
-            } else {
-                // scrolling up
-                setShowNavbar(true);
-            }
-
+            setShowNavbar(currentScrollY <= lastScrollY || currentScrollY <= 50);
             lastScrollY = currentScrollY;
         };
 
@@ -34,9 +28,13 @@ const Navbar = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // While SSR, render navbar visible (prevents mismatch)
+    const navbarHeight = hydrated && !showNavbar ? 'h-0' : 'h-[80px]';
+    const navbarOpacity = hydrated && !showNavbar ? 'opacity-0' : 'opacity-100';
+
     return (
-        <div className={`fixed top-0 left-0 w-full bg-white z-50 transition-all duration-300 ease-in-out overflow-hidden ${showNavbar ? 'h-[80px]' : 'h-0'}`}>
-            <div className={`flex justify-between items-center px-10 max-md:px-5 transition-all duration-300 ease-in-out ${showNavbar ? 'opacity-100' : 'opacity-0'} h-full`}>
+        <div className={`fixed top-0 left-0 w-full bg-white z-50 transition-all duration-300 ease-in-out overflow-hidden ${navbarHeight}`}>
+            <div className={`flex justify-between items-center px-10 max-md:px-5 transition-all duration-300 ease-in-out ${navbarOpacity} h-full`}>
                 <div className="flex items-center">
                     <i onClick={toggleDrawer} className='text-2xl hidden max-[991px]:block hover:bg-neutral-100 py-1 px-2 rounded-xl cursor-pointer'>
                         <Menu />
@@ -52,23 +50,17 @@ const Navbar = () => {
                     <ul className="flex items-center gap-7">
                         <li className="font-semibold max-[991px]:hidden">
                             <Link href="/" className="relative group flex">
-                                <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">
-                                    Home
-                                </span>
+                                <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">Home</span>
                             </Link>
                         </li>
                         <li className="font-semibold max-[991px]:hidden">
                             <Link href="/campaigns" className="relative group flex">
-                                <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">
-                                    Campaigns
-                                </span>
+                                <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">Campaigns</span>
                             </Link>
                         </li>
                         <li className="font-semibold max-[991px]:hidden">
                             <Link href="/dashboard" className="relative group flex">
-                                <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">
-                                    Dashboard
-                                </span>
+                                <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">Dashboard</span>
                             </Link>
                         </li>
                     </ul>
@@ -76,11 +68,8 @@ const Navbar = () => {
                 <CustomWalletButton />
             </div>
 
-            {/* Drawer remains unchanged */}
-            <div
-                className={`fixed top-0 left-0 z-40 h-screen shadow-xl p-4 bg-white w-80 transition-transform ${isDrawerOpen ? 'translate-x-0' : '-translate-x-full'
-                    }`}
-            >
+            {/* Drawer */}
+            <div className={`fixed top-0 left-0 z-40 h-screen shadow-xl p-4 bg-white w-80 transition-transform ${isDrawerOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <button
                     type="button"
                     onClick={toggleDrawer}
@@ -92,23 +81,17 @@ const Navbar = () => {
                     <ul className='flex flex-col items-center'>
                         <li className="font-medium text-xl py-4">
                             <Link href="/" className="relative group flex w-fit">
-                                <span className="group-hover:after:w-full after:w-0 after:h-0.5 after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300">
-                                    Home
-                                </span>
+                                <span className="group-hover:after:w-full after:w-0 after:h-0.5 after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300">Home</span>
                             </Link>
                         </li>
                         <li className="font-medium text-xl py-4">
                             <Link href="/campaigns" className="relative group flex w-fit">
-                                <span className="group-hover:after:w-full after:w-0 after:h-0.5 after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300">
-                                    Campaigns
-                                </span>
+                                <span className="group-hover:after:w-full after:w-0 after:h-0.5 after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300">Campaigns</span>
                             </Link>
                         </li>
                         <li className="font-medium text-xl py-4">
                             <Link href="/dashboard" className="relative group flex w-fit">
-                                <span className="group-hover:after:w-full after:w-0 after:h-0.5 after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300">
-                                    Dashboard
-                                </span>
+                                <span className="group-hover:after:w-full after:w-0 after:h-0.5 after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300">Dashboard</span>
                             </Link>
                         </li>
                     </ul>

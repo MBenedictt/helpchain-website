@@ -11,12 +11,36 @@ import CreateCampaignButton from '../components/CreateCampaignButton';
 import SkeletonCard from '../components/SkeletonCard';
 import { Ban, BanknoteArrowDown, ExternalLink, Power } from 'lucide-react';
 import { togglePause } from '@/lib/toggle-paused';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '../components/ui/tooltip';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '../components/ui/alert-dialog';
 import AddTiersButton from '../components/AddTierButton';
 import Link from 'next/link';
 import { fetchUserContributions } from '@/lib/user-contribution';
 import { fetchDonatedCampaigns } from '@/lib/donated-campaigns';
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from '../components/ui/tabs';
+import Footer from '../components/Footer';
+import RefundButton from '../components/refundButton';
+import { publicClient } from '@/lib/contracts';
+import { toast } from 'sonner';
 
 type Campaign = {
     address: string;
@@ -39,6 +63,10 @@ type Contribution = {
     totalContribution: number;
 };
 
+function shortenAddress(address: string) {
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
+}
+
 export default function Dashboard() {
     const { address, isConnected } = useAccount();
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -57,14 +85,11 @@ export default function Dashboard() {
         if (!address) return;
         setLoading(true);
         try {
-            // 1. Get campaigns user has backed
             const campaigns = await fetchDonatedCampaigns(address as Address);
-
-            // 2. For each campaign, get totalContribution from contract
             const result = await fetchUserContributions(address as Address, campaigns);
             setDonatedCampaigns(result);
         } catch (err) {
-            console.error("Error loading contributions:", err);
+            console.error('Error loading contributions:', err);
         } finally {
             setLoading(false);
         }
@@ -75,15 +100,33 @@ export default function Dashboard() {
         loadDonatedCampaigns();
     }, [address]);
 
-    const handleActive = async (campaignAddress: Address) => {
+    const handleActive = async (campaignAddress: Address, paused: boolean) => {
         try {
-            const tx = await togglePause(campaignAddress);
-            alert(`Pause toggled! Tx: ${tx}`);
-        } catch (err) {
-            alert('Failed to toggle pause');
-        }
-    };
+            toast.loading("Sending transaction...")
 
+            const txHash = await togglePause(campaignAddress)
+
+            toast.loading("Waiting for confirmation...")
+
+            await publicClient.waitForTransactionReceipt({ hash: txHash })
+
+            toast.dismiss()
+            toast.success(
+                paused ? "Campaign activated successfully!" : "Campaign paused successfully!",
+                {
+                    closeButton: true,
+                    position: "top-right",
+                }
+            )
+        } catch (err) {
+            toast.dismiss()
+            console.error("Failed to toggle pause:", err)
+            toast.error("Failed to toggle pause. Try again later.", {
+                closeButton: true,
+                position: "top-right",
+            })
+        }
+    }
 
     return (
         <div className="font-inter">
@@ -93,7 +136,8 @@ export default function Dashboard() {
                     <div>
                         <h1 className="text-3xl font-bold">Dashboard</h1>
                         <p className="text-gray-500 mt-2">
-                            This is your dashboard where you can manage your campaigns and donations.
+                            This is your dashboard where you can manage your campaigns and
+                            donations.
                         </p>
                     </div>
 
@@ -108,133 +152,212 @@ export default function Dashboard() {
                     <p className="text-gray-500 col-span-3">
                         You haven’t connected your wallet.
                     </p>
-                ) : loading ? (
-                    <div className="grid grid-cols-3 gap-6 max-[991px]:grid-cols-1">
-                        {[...Array(3)].map((_, i) => (
-                            <SkeletonCard key={i} />
-                        ))}
-                    </div>
-                ) : campaigns.length === 0 ? (
-                    <p className="text-gray-500 col-span-3">
-                        You haven’t created any campaigns yet.
-                    </p>
                 ) : (
-                    <div className="grid grid-cols-3 gap-6 max-[991px]:grid-cols-1">
-                        {campaigns.map((c, i) => {
-                            return (
-                                <div
-                                    key={i}
-                                    className="p-4 border rounded-lg shadow-sm bg-white"
-                                >
-                                    <div className='flex items-center gap-2 mb-1'>
-                                        <h2 className="text-lg font-bold">{c.name}</h2>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Link href={`https://sepolia.etherscan.io/address/${c.address}`} target="_blank" className='text-gray-400 hover:text-gray-600 bg-gray-100 p-1 rounded transition'><ExternalLink size={16} /></Link>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>View on-chain</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </div>
-                                    <div
-                                        className={`px-3 py-1 rounded-full text-[10px] font-medium w-fit mb-2
-                                        ${c.paused ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}
-                                    >
-                                        {c.paused ? "Not Active" : "Active"}
-                                    </div>
-                                    <p className="text-sm text-gray-600 mb-1">Goal: {c.goal}</p>
-                                    <p className="text-sm text-gray-600 mb-1">Balance: {c.balance}</p>
+                    <Tabs defaultValue="campaigns" className="w-full">
+                        <TabsList className="mb-6">
+                            <TabsTrigger value="campaigns" className='cursor-pointer'>My Campaigns</TabsTrigger>
+                            <TabsTrigger value="donations" className='cursor-pointer'>My Donations</TabsTrigger>
+                        </TabsList>
 
-                                    <div className="mt-4 flex justify-end gap-2">
-                                        {!c.paused && (
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <button
-                                                        className="cursor-pointer bg-green-500 hover:bg-green-700 text-white text-sm font-bold p-2 rounded"
-                                                    >
-                                                        <BanknoteArrowDown size={16} />
-                                                    </button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Withdraw</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        )}
-
-                                        {!c.paused && (
-                                            <AddTiersButton campaignAddress={c.address as Address} />
-                                        )}
-
-                                        <AlertDialog>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <AlertDialogTrigger asChild>
-                                                        <button
-                                                            className={`cursor-pointer text-sm font-bold p-2 rounded transition text-white
-                                                            ${c.paused ? "bg-blue-500 hover:bg-blue-700" : "bg-red-500 hover:bg-red-700"}`}
-                                                        >
-                                                            {c.paused ? <Power size={16} /> : <Ban size={16} />}
-                                                        </button>
-                                                    </AlertDialogTrigger>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>{c.paused ? "Activate" : "Deactivate"}</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>
-                                                        {c.paused ? "Activate Campaign?" : "Deactivate Campaign?"}
-                                                    </AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        {c.paused
-                                                            ? "This will make the campaign active and visible to donors."
-                                                            : "This will hide the campaign from new contributions. You can activate it again at any time."}
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel className='cursor-pointer'>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction
-                                                        className='cursor-pointer bg-lime-300 hover:bg-lime-400 text-black'
-                                                        onClick={() => handleActive(c.address as Address)}
-                                                    >
-                                                        {c.paused ? "Activate" : "Deactivate"}
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
+                        {/* --- CAMPAIGNS TAB --- */}
+                        <TabsContent value="campaigns">
+                            {loading ? (
+                                <div className="grid grid-cols-3 gap-6 max-[991px]:grid-cols-1">
+                                    {[...Array(3)].map((_, i) => (
+                                        <SkeletonCard key={i} />
+                                    ))}
                                 </div>
-                            );
-                        })}
-                    </div>
-                )}
-                <div className="p-6 space-y-4">
-                    <h2 className="text-xl font-bold">
-                        Address {address}
-                    </h2>
-                    {donatedCampaigns.length === 0 ? (
-                        <p>No contributions yet.</p>
-                    ) : (
-                        <ul className="space-y-2">
-                            {donatedCampaigns.map((c) => (
-                                <li
-                                    key={c.campaign}
-                                    className="p-4 rounded-lg shadow bg-white"
-                                >
-                                    <p className="font-mono text-sm">Campaign: {c.campaign}</p>
-                                    <p className="font-semibold">
-                                        Contribution: ${c.totalContribution}
-                                    </p>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
+                            ) : campaigns.length === 0 ? (
+                                <p className="text-gray-500 col-span-3">
+                                    You haven’t created any campaigns yet.
+                                </p>
+                            ) : (
+                                <div className="grid grid-cols-3 gap-6 max-[991px]:grid-cols-1">
+                                    {campaigns.map((c, i) => (
+                                        <div
+                                            key={i}
+                                            className="p-4 border rounded-lg shadow-sm bg-white"
+                                        >
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h2 className="text-lg font-bold">{c.name}</h2>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Link
+                                                            href={`https://sepolia.etherscan.io/address/${c.address}`}
+                                                            target="_blank"
+                                                            className="text-gray-400 hover:text-gray-600 bg-gray-100 p-1 rounded transition"
+                                                        >
+                                                            <ExternalLink size={16} />
+                                                        </Link>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>View on-chain</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </div>
+                                            <div
+                                                className={`px-3 py-1 rounded-full text-[10px] font-medium w-fit mb-2
+                                                    ${c.paused
+                                                        ? 'bg-red-100 text-red-800'
+                                                        : 'bg-green-100 text-green-800'
+                                                    }`}
+                                            >
+                                                {c.paused ? 'Not Active' : 'Active'}
+                                            </div>
+                                            <p className="text-sm text-gray-600 mb-1">
+                                                Goal: {c.goal.toString()}
+                                            </p>
+                                            <p className="text-sm text-gray-600 mb-1">
+                                                Balance: {c.balance.toString()}
+                                            </p>
 
+                                            <div className="mt-4 flex justify-end gap-2">
+                                                {!c.paused && (
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <button className="cursor-pointer bg-green-500 hover:bg-green-700 text-white text-sm font-bold p-2 rounded" disabled>
+                                                                <BanknoteArrowDown size={16} />
+                                                            </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Withdraw (Coming Soon)</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                )}
+
+                                                {!c.paused && (
+                                                    <AddTiersButton campaignAddress={c.address as Address} />
+                                                )}
+
+                                                <AlertDialog>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <AlertDialogTrigger asChild>
+                                                                <button
+                                                                    className={`cursor-pointer text-sm font-bold p-2 rounded transition text-white
+                                                                        ${c.paused
+                                                                            ? 'bg-blue-500 hover:bg-blue-700'
+                                                                            : 'bg-red-500 hover:bg-red-700'
+                                                                        }`}
+                                                                >
+                                                                    {c.paused ? (
+                                                                        <Power size={16} />
+                                                                    ) : (
+                                                                        <Ban size={16} />
+                                                                    )}
+                                                                </button>
+                                                            </AlertDialogTrigger>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>{c.paused ? 'Activate' : 'Deactivate'}</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>
+                                                                {c.paused
+                                                                    ? 'Activate Campaign?'
+                                                                    : 'Deactivate Campaign?'}
+                                                            </AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                {c.paused
+                                                                    ? 'This will make the campaign active and visible to donors.'
+                                                                    : 'This will hide the campaign from new contributions. You can activate it again at any time.'}
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel className="cursor-pointer">
+                                                                Cancel
+                                                            </AlertDialogCancel>
+                                                            <AlertDialogAction
+                                                                className="cursor-pointer bg-lime-300 hover:bg-lime-400 text-black"
+                                                                onClick={() =>
+                                                                    handleActive(c.address as Address, c.paused)
+                                                                }
+                                                            >
+                                                                {c.paused ? 'Activate' : 'Deactivate'}
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </TabsContent>
+
+                        {/* --- DONATIONS TAB --- */}
+                        <TabsContent value="donations">
+                            <div className="grid grid-cols-3 gap-6 max-[991px]:grid-cols-1">
+                                {donatedCampaigns.length === 0 ? (
+                                    <p className="text-gray-500 col-span-3">
+                                        You have not donated to any campaigns yet.
+                                    </p>
+                                ) : (
+                                    donatedCampaigns.map((c, i) => {
+                                        const campaignDetails = campaigns.find((x) => x.address.toLowerCase() === c.campaign);
+                                        console.log(c);
+                                        console.log(campaigns);
+                                        return (
+                                            <div
+                                                key={i}
+                                                className="p-4 border rounded-lg shadow-sm bg-white"
+                                            >
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <h2 className="text-lg font-bold">
+                                                        {campaignDetails?.name || "Campaign"}
+                                                    </h2>
+                                                </div>
+
+                                                <Link
+                                                    href={`https://sepolia.etherscan.io/address/${c.campaign}`}
+                                                    target="_blank"
+                                                    className="cursor-pointer bg-gray-100 px-2 py-1 rounded border border-gray-300 text-xs text-gray-500 hover:underline mb-1 block w-fit text-left"
+                                                >
+                                                    {shortenAddress(c.campaign)}
+                                                </Link>
+
+                                                <p className="text-gray-600 mb-3">
+                                                    Total Donation: <span className="font-semibold">${c.totalContribution}</span>
+                                                </p>
+
+
+                                                <div className="mt-4 flex justify-end gap-2">
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <RefundButton campaignAddress={c.campaign} />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Request Refund</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Link
+                                                                href={`/campaign/${c.campaign}`} // if you have a campaign detail page
+                                                                className="cursor-pointer bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold p-2 rounded"
+                                                            >
+                                                                View
+                                                            </Link>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>View Campaign</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                )}
             </div>
+            <Footer />
         </div>
     );
 }

@@ -188,11 +188,11 @@ export default function CampaignPage() {
     return (
         <div className="font-inter">
             <Navbar />
-            <div className="max-w-7xl px-4 max-xl:px-10 mx-auto mt-20">
+            <div className="max-w-7xl px-4 max-xl:px-10 mx-auto max-md:px-5 mt-20">
                 <BackButton />
                 <h1 className="text-3xl font-bold mb-4">{campaign!.name}</h1>
                 <div className="flex gap-5">
-                    <div className="w-8/12">
+                    <div className="w-8/12 max-[991px]:w-full">
                         <Image
                             src="/assets/help.jpg"
                             alt="Campaign thumbnail"
@@ -210,7 +210,7 @@ export default function CampaignPage() {
                                     (campaign!.balance * BigInt(100)) / campaign!.goal
                                 )}
                             />
-                            <div className="flex justify-between items-center my-2 text-gray-500">
+                            <div className="flex max-md:flex-col justify-between items-center max-md:items-start my-2 text-gray-500">
                                 <p className="text-sm">
                                     ${Number(campaign!.goal)} Goal
                                 </p>
@@ -219,6 +219,95 @@ export default function CampaignPage() {
                                     {new Date(Number(campaign!.deadline) * 1000).toLocaleString()}
                                 </p>
                             </div>
+                            <Form {...form}>
+                                <form
+                                    onSubmit={form.handleSubmit(onSubmit)}
+                                    className="space-y-4 hidden max-[991px]:block"
+                                >
+                                    <p className="text-gray-600 text-sm mt-2">Quick Selection</p>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {campaign!.tiers.length === 0 ? (
+                                            <p className="col-span-3 text-center text-gray-500 text-sm italic mb-2">
+                                                No tiers available for this campaign.
+                                            </p>
+                                        ) : (
+                                            campaign!.tiers.map((tier, index) => (
+                                                <div
+                                                    key={index}
+                                                    onClick={() => {
+                                                        const current = form.watch("tierIndex");
+                                                        if (current === index) {
+                                                            form.setValue("tierIndex", null);
+                                                        } else {
+                                                            form.setValue("tierIndex", index);
+                                                            form.setValue("amount", "");
+                                                        }
+                                                    }}
+                                                    className={`cursor-pointer rounded-lg border p-2 text-center transition ${form.watch("tierIndex") === index
+                                                        ? "border-lime-600 bg-lime-100"
+                                                        : "border-gray-300 hover:bg-gray-100"
+                                                        }`}
+                                                >
+                                                    <p className="text-[12px] text-gray-500">{tier.name}</p>
+                                                    <h1 className="text-xl font-bold">
+                                                        ${Number(tier.amount)}
+                                                    </h1>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+
+                                    <FormField
+                                        control={form.control}
+                                        name="amount"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <div
+                                                        className={`w-full flex items-center border rounded-lg px-4 py-3 ${form.watch("tierIndex") === null
+                                                            ? "border-lime-500"
+                                                            : "border-gray-300"
+                                                            }`}
+                                                    >
+                                                        <div className="flex flex-col items-center mr-2">
+                                                            <span className="text-2xl font-bold">$</span>
+                                                            <span className="text-xs font-semibold text-gray-600">USD</span>
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            placeholder="0"
+                                                            {...field}
+                                                            value={field.value || ""}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                form.setValue("tierIndex", null);
+                                                            }}
+                                                            className="w-full border-none shadow-none text-right text-2xl font-bold outline-none"
+                                                        />
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <p className="text-[12px] text-gray-500">*For the sake of testing, $1 equals 1 wei. 1 wei is 10⁻¹⁸ ETH</p>
+
+                                    {form.formState.errors?.root && (
+                                        <p className="text-red-500 text-sm">
+                                            {form.formState.errors.root.message}
+                                        </p>
+                                    )}
+                                    <button
+                                        type="submit"
+                                        disabled={sendingFund}
+                                        className={`w-full py-3 rounded-lg text-md font-semibold cursor-pointer transition 
+                                    ${sendingFund ? "bg-gray-300 text-gray-700 cursor-not-allowed" : "bg-lime-300 hover:bg-lime-400 text-black"}`}
+                                    >
+                                        {sendingFund ? "Sending fund..." : "Donate Now"}
+                                    </button>
+                                </form>
+                            </Form>
                         </div>
                         <div className="border-b border-gray-300 mb-4 pb-4">
                             <p className="mb-1 font-bold">Campaign Address: </p>
@@ -256,7 +345,7 @@ export default function CampaignPage() {
                     </div>
 
                     {/* Support section */}
-                    <div className="w-4/12 sticky top-20 h-fit rounded-xl shadow-md p-4">
+                    <div className="w-4/12 sticky top-20 h-fit rounded-xl shadow-md p-4 max-[991px]:hidden">
                         <h1 className="font-bold text-xl">Support this Campaign</h1>
                         <Form {...form}>
                             <form
@@ -330,6 +419,7 @@ export default function CampaignPage() {
                                         </FormItem>
                                     )}
                                 />
+                                <p className="text-[12px] text-gray-500">*For the sake of testing, $1 equals 1 wei. 1 wei is 10⁻¹⁸ ETH</p>
 
                                 {form.formState.errors?.root && (
                                     <p className="text-red-500 text-sm">

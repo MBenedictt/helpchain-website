@@ -8,12 +8,12 @@ import CustomWalletButton from "../CustomWalletButton";
 const Navbar = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [showNavbar, setShowNavbar] = useState(true);
-    const [hydrated, setHydrated] = useState(false); // <-- hydration flag
+    const [hydrated, setHydrated] = useState(false);
 
     const toggleDrawer = () => setIsDrawerOpen(!isDrawerOpen);
 
     useEffect(() => {
-        setHydrated(true); // mark client-side rendering complete
+        setHydrated(true);
 
         let lastScrollY = window.scrollY;
 
@@ -28,7 +28,6 @@ const Navbar = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // While SSR, render navbar visible (prevents mismatch)
     const navbarHeight = hydrated && !showNavbar ? 'h-0' : 'h-[80px]';
     const navbarOpacity = hydrated && !showNavbar ? 'opacity-0' : 'opacity-100';
 

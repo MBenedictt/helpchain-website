@@ -1,5 +1,18 @@
 import { publicClient, factoryAddress, crowdfundingFactoryAbi, crowdfundingAbi } from './contracts';
-import { Address } from 'viem';
+import { Address, Abi } from 'viem';
+
+function getCampaignDetailsMulticall(address: Address) {
+    return [
+        { address, abi: crowdfundingAbi as Abi, functionName: 'campaign' },
+        { address, abi: crowdfundingAbi as Abi, functionName: 'description' },
+        { address, abi: crowdfundingAbi as Abi, functionName: 'goal' },
+        { address, abi: crowdfundingAbi as Abi, functionName: 'deadline' },
+        { address, abi: crowdfundingAbi as Abi, functionName: 'getContractBalance' },
+        { address, abi: crowdfundingAbi as Abi, functionName: 'owner' },
+        { address, abi: crowdfundingAbi as Abi, functionName: 'getTiers' },
+        { address, abi: crowdfundingAbi as Abi, functionName: 'paused' }
+    ];
+}
 
 export type CampaignStruct = {
     campaignAddress: Address;
@@ -26,7 +39,76 @@ export type HydratedCampaign = {
     paused: boolean;
 };
 
-// ─── Fetch All Campaigns ─────────────────────────────────────────────
+
+// ─── Hydrate Helper Functions ──────────────────────────────────────
+async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampaign> {
+    const address = campaign.campaignAddress;
+    const multicallCalls = getCampaignDetailsMulticall(address);
+
+    const [
+        name,
+        description,
+        goal,
+        deadline,
+        balance,
+        owner,
+        tiers,
+        paused
+    ] = (await publicClient.multicall({ contracts: multicallCalls })).map(result => result.result);
+
+    return {
+        address,
+        name: name as string,
+        description: description as string,
+        goal: goal as bigint,
+        deadline: deadline as bigint,
+        balance: balance as bigint,
+        owner: owner as string,
+        tiers: tiers as Tier[],
+        paused: paused as boolean
+    };
+}
+
+async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCampaign[]> {
+    const multicallCalls = campaigns.flatMap(c => getCampaignDetailsMulticall(c.campaignAddress));
+
+    const results = await publicClient.multicall({ contracts: multicallCalls });
+
+    const hydratedCampaigns = [];
+    let resultIndex = 0;
+    const CALLS_PER_CAMPAIGN = 8;
+
+    for (const campaign of campaigns) {
+        const campaignResults = results.slice(resultIndex, resultIndex + CALLS_PER_CAMPAIGN);
+        const [
+            name,
+            description,
+            goal,
+            deadline,
+            balance,
+            owner,
+            tiers,
+            paused
+        ] = campaignResults.map(res => res.result);
+
+        hydratedCampaigns.push({
+            address: campaign.campaignAddress,
+            name: name as string,
+            description: description as string,
+            goal: goal as bigint,
+            deadline: deadline as bigint,
+            balance: balance as bigint,
+            owner: owner as string,
+            tiers: tiers as Tier[],
+            paused: paused as boolean
+        });
+        resultIndex += CALLS_PER_CAMPAIGN;
+    }
+
+    return hydratedCampaigns;
+}
+
+// ─── Main API Functions ─────────────────────────────────────────────
 export async function fetchAllCampaigns(): Promise<HydratedCampaign[]> {
     const campaigns = await publicClient.readContract({
         address: factoryAddress,
@@ -37,7 +119,6 @@ export async function fetchAllCampaigns(): Promise<HydratedCampaign[]> {
     return await hydrateCampaigns(campaigns);
 }
 
-// ─── Fetch Paginated Campaigns ──────────────────────────────────────
 export async function getPaginatedCampaigns(page: number, perPage: number) {
     const campaigns = await publicClient.readContract({
         address: factoryAddress,
@@ -54,7 +135,6 @@ export async function getPaginatedCampaigns(page: number, perPage: number) {
     };
 }
 
-// ─── Fetch Campaign by Address ──────────────────────────────────────
 export async function fetchCampaignByAddress(address: string): Promise<HydratedCampaign | null> {
     try {
         return await hydrateCampaign({ campaignAddress: address as Address } as CampaignStruct);
@@ -64,7 +144,6 @@ export async function fetchCampaignByAddress(address: string): Promise<HydratedC
     }
 }
 
-// ─── Fetch User Campaigns ───────────────────────────────────────────
 export async function fetchUserCampaigns(address: Address): Promise<HydratedCampaign[]> {
     try {
         const campaigns = await publicClient.readContract({
@@ -79,38 +158,4 @@ export async function fetchUserCampaigns(address: Address): Promise<HydratedCamp
         console.error('Failed to fetch user campaigns:', err);
         return [];
     }
-}
-
-// ─── Hydrate Helpers ────────────────────────────────────────────────
-async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCampaign[]> {
-    return await Promise.all(
-        campaigns.map(c => hydrateCampaign(c))
-    );
-}
-
-async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampaign> {
-    const address = campaign.campaignAddress;
-
-    const [name, description, goal, deadline, balance, owner, tiers, paused] = await Promise.all([
-        publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'campaign' }) as Promise<string>,
-        publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'description' }) as Promise<string>,
-        publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'goal' }) as Promise<bigint>,
-        publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'deadline' }) as Promise<bigint>,
-        publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'getContractBalance' }) as Promise<bigint>,
-        publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'owner' }) as Promise<string>,
-        publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'getTiers' }) as Promise<Tier[]>,
-        publicClient.readContract({ address, abi: crowdfundingAbi, functionName: 'paused' }) as Promise<boolean>
-    ]);
-
-    return {
-        address,
-        name,
-        description,
-        goal,
-        deadline,
-        balance,
-        owner,
-        tiers,
-        paused
-    };
 }

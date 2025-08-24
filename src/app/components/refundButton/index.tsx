@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip"
 import { publicClient } from "@/lib/contracts"
 import { toast } from 'sonner';
+import { BanknoteX } from "lucide-react"
 
 export default function RefundButton({ campaignAddress }: { campaignAddress: Address }) {
     const [loading, setLoading] = useState(false)
@@ -43,10 +44,10 @@ export default function RefundButton({ campaignAddress }: { campaignAddress: Add
                 <TooltipTrigger asChild>
                     <AlertDialogTrigger asChild>
                         <button
-                            className="cursor-pointer bg-red-500 hover:bg-red-700 text-white text-sm font-bold p-2 rounded"
+                            className="flex items-center gap-2 cursor-pointer bg-red-100 border border-red-300 hover:bg-red-200 text-red-600 hover:scale-105 py-2 px-4 max-sm:px-3 rounded transition"
                             disabled={true}
                         >
-                            {loading ? "Processing..." : "Refund"}
+                            <BanknoteX size={20} /> <span className='text-sm max-sm:hidden'>{loading ? "Processing..." : "Refund"}</span>
                         </button>
                     </AlertDialogTrigger>
                 </TooltipTrigger>

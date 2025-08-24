@@ -9,7 +9,7 @@ import Navbar from '../components/Navbar';
 import { Separator } from '../components/ui/separator';
 import CreateCampaignButton from '../components/CreateCampaignButton';
 import SkeletonCard from '../components/SkeletonCard';
-import { Ban, BanknoteArrowDown, ExternalLink, Power } from 'lucide-react';
+import { Ban, BanknoteArrowDown, ExternalLink, Eye, Power } from 'lucide-react';
 import { togglePause } from '@/lib/toggle-paused';
 import {
     Tooltip,
@@ -41,6 +41,9 @@ import RefundButton from '../components/refundButton';
 import { publicClient } from '@/lib/contracts';
 import { toast } from 'sonner';
 import { Progress } from '../components/ui/progress';
+import { Skeleton } from '../components/ui/skeleton';
+import Image from 'next/image';
+import { DonationDetailButton } from '../components/DonationDetailButton';
 
 type Campaign = {
     address: string;
@@ -167,9 +170,9 @@ export default function Dashboard() {
                         {/* --- CAMPAIGNS TAB --- */}
                         <TabsContent value="campaigns">
                             {loading ? (
-                                <div className="grid grid-cols-3 gap-6 max-[991px]:grid-cols-1">
+                                <div className="flex flex-col gap-5">
                                     {[...Array(3)].map((_, i) => (
-                                        <SkeletonCard key={i} />
+                                        <Skeleton className="w-full h-[250px] rounded-lg" key={i} />
                                     ))}
                                 </div>
                             ) : campaigns.length === 0 ? (
@@ -307,8 +310,14 @@ export default function Dashboard() {
 
                         {/* --- DONATIONS TAB --- */}
                         <TabsContent value="donations">
-                            <div className="grid grid-cols-3 gap-6 max-[991px]:grid-cols-1">
-                                {donatedCampaigns.length === 0 ? (
+                            <div className="gap-5">
+                                {loading ? (
+                                    <div className="flex flex-col gap-5">
+                                        {[...Array(3)].map((_, i) => (
+                                            <Skeleton className="w-full h-[200px] rounded-lg" key={i} />
+                                        ))}
+                                    </div>
+                                ) : donatedCampaigns.length === 0 ? (
                                     <p className="text-gray-500 col-span-3">
                                         You have not donated to any campaigns yet.
                                     </p>
@@ -317,51 +326,46 @@ export default function Dashboard() {
                                         return (
                                             <div
                                                 key={i}
-                                                className="p-4 border rounded-lg shadow-sm bg-white"
+                                                className="p-5 flex items-center gap-5 max-md:flex-col max-md:gap-3"
                                             >
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <h2 className="text-lg font-bold">
-                                                        {c.name}
-                                                    </h2>
+                                                <div className='w-[250px] h-full max-md:w-full max-md:h-[100px] rounded-lg bg-gray-100'>
+                                                    <Image
+                                                        src="/assets/help.jpg"
+                                                        alt="Campaign thumbnail"
+                                                        width={300}
+                                                        height={250}
+                                                        className="object-cover w-[250px] h-full max-md:w-full max-md:h-[100px] rounded-lg"
+                                                    />
                                                 </div>
+                                                <div className='w-full h-full'>
+                                                    <div>
+                                                        <p className='font-[400] text-gray-700'>You have donated a total of</p>
+                                                        <h2 className="text-3xl font-bold mt-1 mb-2">
+                                                            ${c.totalContribution}
+                                                        </h2>
+                                                    </div>
 
-                                                <Link
-                                                    href={`https://sepolia.etherscan.io/address/${c.campaign}`}
-                                                    target="_blank"
-                                                    className="cursor-pointer bg-gray-100 px-2 py-1 rounded border border-gray-300 text-xs text-gray-500 hover:underline mb-1 block w-fit text-left"
-                                                >
-                                                    {shortenAddress(c.campaign)}
-                                                </Link>
-
-                                                <p className="text-gray-600 mb-3">
-                                                    Total Donation: <span className="font-semibold">${c.totalContribution}</span>
-                                                </p>
-
-
-                                                <div className="mt-4 flex justify-end gap-2">
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <RefundButton campaignAddress={c.campaign} />
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>Request Refund</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
+                                                    <p className="text-gray-600 mb-3 text-sm">
+                                                        To{" "}
+                                                        <span className="font-bold text-black">
                                                             <Link
-                                                                href={`/campaign/${c.campaign}`} // if you have a campaign detail page
-                                                                className="cursor-pointer bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold p-2 rounded"
+                                                                href={`https://sepolia.etherscan.io/address/${c.campaign}`}
+                                                                target="_blank"
+                                                                className="cursor-pointer hover:underline"
                                                             >
-                                                                View
+                                                                {shortenAddress(c.campaign)}
                                                             </Link>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>View Campaign</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
+                                                        </span>
+                                                        {" "}&ldquo;{c.name}&rdquo; Campaign
+                                                    </p>
+
+                                                    <div className="mt-4 flex justify-start gap-2">
+                                                        <DonationDetailButton campaignAddress={c.campaign} backer={address as Address} />
+
+                                                        <RefundButton campaignAddress={c.campaign} />
+                                                    </div>
                                                 </div>
+
                                             </div>
                                         );
                                     })

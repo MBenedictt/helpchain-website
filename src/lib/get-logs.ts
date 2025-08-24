@@ -31,3 +31,20 @@ export async function fetchDonationLogs(campaignAddress: Address): Promise<Donat
         txHash: row.tx_hash,
     }));
 }
+
+export async function fetchDonationDetail(campaignAddress: `0x${string}`, backer: `0x${string}`) {
+    const { data, error } = await supabaseClient
+        .from("donations")
+        .select("amount, block_time, tx_hash")
+        .eq("campaign_address", campaignAddress.toLowerCase())
+        .eq("backer", backer.toLowerCase())
+        .order("block_time", { ascending: false });
+
+    if (error) throw error;
+
+    return data.map((row) => ({
+        amount: row.amount,
+        date: new Date(row.block_time).toLocaleString(),
+        txHash: row.tx_hash,
+    }));
+}

@@ -27,23 +27,6 @@ export async function POST(req: Request) {
 
         if (upsertErr) throw upsertErr;
 
-        // Delete anything older than the latest 5 for this campaign
-        const { data: old } = await supabaseAdmin
-            .from("donations")
-            .select("id")
-            .eq("campaign_address", body.campaignAddress.toLowerCase())
-            .order("block_time", { ascending: false })
-            .range(5, 999);
-
-        if (old && old.length) {
-            const ids = old.map(r => r.id);
-            const { error: delErr } = await supabaseAdmin
-                .from("donations")
-                .delete()
-                .in("id", ids);
-            if (delErr) throw delErr;
-        }
-
         return NextResponse.json({ ok: true });
     } catch (e: any) {
         console.error("save donation error:", e);

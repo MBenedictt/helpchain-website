@@ -1,13 +1,25 @@
-import { supabaseClient } from "./supabase/supabaseClient";
+import { Address } from "viem";
+import { publicClient, factoryAddress, crowdfundingFactoryAbi } from "./contracts";
+import { fetchUserContributions } from "@/lib/user-contribution";
+import { CampaignStruct } from "./campaigns";
 
-export async function fetchDonatedCampaigns(userAddress: string) {
-    const { data, error } = await supabaseClient
-        .from("donations")
-        .select("campaign_address")
-        .eq("backer", userAddress.toLowerCase());
+export async function fetchDonatedCampaigns(user: Address) {
+    const campaigns = await publicClient.readContract({
+        address: factoryAddress,
+        abi: crowdfundingFactoryAbi,
+        functionName: "getAllCampaigns",
+    }) as CampaignStruct[]
 
-    if (error) throw error;
+    const campaignAddresses = campaigns.map((c) => c.campaignAddress);
 
-    const donatedCampaigns = Array.from(new Set((data ?? []).map((d) => d.campaign_address)));
+    const contributions = await fetchUserContributions(user, campaignAddresses);
+
+    const donatedCampaigns = contributions
+        .filter((c) => c.totalContribution > 0)
+        .map((c) => ({
+            ...c,
+            name: campaigns.find((camp) => camp.campaignAddress === c.campaign)!.name,
+        }));
+
     return donatedCampaigns;
 }

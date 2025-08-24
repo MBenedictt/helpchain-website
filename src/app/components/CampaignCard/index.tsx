@@ -23,14 +23,8 @@ export default function CampaignCard({
     owner,
     goal,
     balance,
-    deadline,
 }: CampaignCardProps) {
     const progress = Number((balance * BigInt(100)) / goal);
-
-    const remainingDays = Math.max(
-        0,
-        Math.floor((Number(deadline) * 1000 - Date.now()) / (1000 * 60 * 60 * 24))
-    );
 
     return (
         <Link href={`/campaign/${address}`}>
@@ -69,7 +63,7 @@ export default function CampaignCard({
                                 ${Number(balance)}
                             </span>
                             <span className="text-sm text-gray-500">
-                                {remainingDays} days left
+                                ${Number(goal)} Goal
                             </span>
                         </div>
                     </div>

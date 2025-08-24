@@ -163,9 +163,9 @@ export default function AddTiersButton({ campaignAddress }: AddTiersButtonProps)
                 <TooltipTrigger asChild>
                     <DialogTrigger asChild>
                         <button
-                            className="cursor-pointer bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold p-2 rounded"
+                            className="flex items-center gap-2 cursor-pointer border border-gray-300 font-semibold text-black hover:bg-gray-100 hover:scale-105 py-2 px-4 max-sm:px-3 rounded transition"
                         >
-                            <Plus size={16} />
+                            <Plus size={20} /> <span className='text-sm max-sm:hidden'>Add Tiers</span>
                         </button>
                     </DialogTrigger>
                 </TooltipTrigger>

@@ -29,7 +29,6 @@ import {
 } from '../components/ui/alert-dialog';
 import AddTiersButton from '../components/AddTierButton';
 import Link from 'next/link';
-import { fetchUserContributions } from '@/lib/user-contribution';
 import { fetchDonatedCampaigns } from '@/lib/donated-campaigns';
 import {
     Tabs,
@@ -41,6 +40,7 @@ import Footer from '../components/Footer';
 import RefundButton from '../components/refundButton';
 import { publicClient } from '@/lib/contracts';
 import { toast } from 'sonner';
+import { Progress } from '../components/ui/progress';
 
 type Campaign = {
     address: string;
@@ -60,6 +60,7 @@ type Campaign = {
 
 type Contribution = {
     campaign: Address;
+    name: string;
     totalContribution: number;
 };
 
@@ -86,10 +87,14 @@ export default function Dashboard() {
         setLoading(true);
         try {
             const campaigns = await fetchDonatedCampaigns(address as Address);
-            const result = await fetchUserContributions(address as Address, campaigns);
-            setDonatedCampaigns(result);
+            console.log("Fetched donated campaigns:", campaigns);
+            setDonatedCampaigns(campaigns);
         } catch (err) {
-            console.error('Error loading contributions:', err);
+            console.error("Error loading contributions:", err);
+            toast.error("Error loading contributions. Try again later.", {
+                closeButton: true,
+                position: "top-right",
+            });
         } finally {
             setLoading(false);
         }
@@ -172,14 +177,14 @@ export default function Dashboard() {
                                     You haven’t created any campaigns yet.
                                 </p>
                             ) : (
-                                <div className="grid grid-cols-3 gap-6 max-[991px]:grid-cols-1">
+                                <div className="gap-5">
                                     {campaigns.map((c, i) => (
                                         <div
                                             key={i}
-                                            className="p-4 border rounded-lg shadow-sm bg-white"
+                                            className="p-5"
                                         >
                                             <div className="flex items-center gap-2 mb-1">
-                                                <h2 className="text-lg font-bold">{c.name}</h2>
+                                                <h2 className="text-3xl max-lg:text-2xl max-md:text-xl font-bold">{c.name}</h2>
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
                                                         <Link
@@ -187,7 +192,7 @@ export default function Dashboard() {
                                                             target="_blank"
                                                             className="text-gray-400 hover:text-gray-600 bg-gray-100 p-1 rounded transition"
                                                         >
-                                                            <ExternalLink size={16} />
+                                                            <ExternalLink className='w-[20px] h-[20px] max-md:w-[16px] max-md:h-[16px]' />
                                                         </Link>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -195,28 +200,38 @@ export default function Dashboard() {
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </div>
-                                            <div
-                                                className={`px-3 py-1 rounded-full text-[10px] font-medium w-fit mb-2
+
+                                            <Progress value={Number((c.balance * BigInt(100)) / c.goal)} className='mt-5 mb-3' />
+
+                                            <div className='flex justify-between items-center'>
+                                                <div
+                                                    className={`px-3 py-1 rounded-full text-[10px] font-medium w-fit mb-2
                                                     ${c.paused
-                                                        ? 'bg-red-100 text-red-800'
-                                                        : 'bg-green-100 text-green-800'
-                                                    }`}
-                                            >
-                                                {c.paused ? 'Not Active' : 'Active'}
+                                                            ? 'bg-red-100 text-red-800'
+                                                            : 'bg-green-100 text-green-800'
+                                                        }`}
+                                                >
+                                                    {c.paused ? 'Not Active' : 'Active'}
+                                                </div>
+
+                                                <p className="text-gray-500 font-semibold">
+                                                    ${c.goal.toString()} Goal
+                                                </p>
                                             </div>
-                                            <p className="text-sm text-gray-600 mb-1">
-                                                Goal: {c.goal.toString()}
+
+                                            <p className="text-gray-500 text-sm mt-2">
+                                                Campaign Balance:
                                             </p>
-                                            <p className="text-sm text-gray-600 mb-1">
-                                                Balance: {c.balance.toString()}
+                                            <p className="text-black text-xl font-semibold">
+                                                ${c.balance.toString()}
                                             </p>
 
-                                            <div className="mt-4 flex justify-end gap-2">
+                                            <div className="mt-4 flex justify-start gap-2">
                                                 {!c.paused && (
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <button className="cursor-pointer bg-green-500 hover:bg-green-700 text-white text-sm font-bold p-2 rounded" disabled>
-                                                                <BanknoteArrowDown size={16} />
+                                                            <button className="flex items-center gap-2 cursor-pointer border border-gray-300 font-semibold text-black hover:bg-gray-100 hover:scale-105 py-2 px-4 max-sm:px-3 rounded transition" disabled>
+                                                                <BanknoteArrowDown size={20} /> <span className='text-sm max-sm:hidden'>Withdraw</span>
                                                             </button>
                                                         </TooltipTrigger>
                                                         <TooltipContent>
@@ -234,14 +249,16 @@ export default function Dashboard() {
                                                         <TooltipTrigger asChild>
                                                             <AlertDialogTrigger asChild>
                                                                 <button
-                                                                    className={`cursor-pointer text-sm font-bold p-2 rounded transition text-white
+                                                                    className={`cursor-pointer text-sm font-semibold py-2 px-3 rounded transition
                                                                         ${c.paused
-                                                                            ? 'bg-blue-500 hover:bg-blue-700'
-                                                                            : 'bg-red-500 hover:bg-red-700'
+                                                                            ? 'bg-lime-100 border border-lime-300 hover:bg-lime-200 text-black hover:scale-105'
+                                                                            : 'bg-red-100 border border-red-300 hover:bg-red-200 text-red-600 hover:scale-105'
                                                                         }`}
                                                                 >
                                                                     {c.paused ? (
-                                                                        <Power size={16} />
+                                                                        <div className='flex items-center gap-2'>
+                                                                            <Power size={16} /> <span className='text-sm max-sm:hidden'>Activate</span>
+                                                                        </div>
                                                                     ) : (
                                                                         <Ban size={16} />
                                                                     )}
@@ -297,9 +314,6 @@ export default function Dashboard() {
                                     </p>
                                 ) : (
                                     donatedCampaigns.map((c, i) => {
-                                        const campaignDetails = campaigns.find((x) => x.address.toLowerCase() === c.campaign);
-                                        console.log(c);
-                                        console.log(campaigns);
                                         return (
                                             <div
                                                 key={i}
@@ -307,7 +321,7 @@ export default function Dashboard() {
                                             >
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <h2 className="text-lg font-bold">
-                                                        {campaignDetails?.name || "Campaign"}
+                                                        {c.name}
                                                     </h2>
                                                 </div>
 

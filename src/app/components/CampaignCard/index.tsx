@@ -9,7 +9,6 @@ interface CampaignCardProps {
     description: string;
     goal: bigint;
     balance: bigint;
-    deadline: bigint;
     owner: string;
 }
 

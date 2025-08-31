@@ -32,7 +32,6 @@ type Campaign = {
     name: string;
     description: string;
     goal: bigint;
-    deadline: bigint;
     balance: bigint;
     owner: string;
     tiers: {
@@ -213,10 +212,6 @@ export default function CampaignPage() {
                             <div className="flex max-md:flex-col justify-between items-center max-md:items-start my-2 text-gray-500">
                                 <p className="text-sm">
                                     ${Number(campaign!.goal)} Goal
-                                </p>
-                                <p className="text-sm">
-                                    Deadline:{" "}
-                                    {new Date(Number(campaign!.deadline) * 1000).toLocaleString()}
                                 </p>
                             </div>
                             <Form {...form}>

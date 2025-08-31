@@ -24,7 +24,6 @@ type Campaign = {
     name: string;
     description: string;
     goal: bigint;
-    deadline: bigint;
     balance: bigint;
     owner: string;
     paused: boolean;

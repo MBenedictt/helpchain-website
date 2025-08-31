@@ -6,7 +6,6 @@ function getCampaignDetailsMulticall(address: Address) {
         { address, abi: crowdfundingAbi as Abi, functionName: 'campaign' },
         { address, abi: crowdfundingAbi as Abi, functionName: 'description' },
         { address, abi: crowdfundingAbi as Abi, functionName: 'goal' },
-        { address, abi: crowdfundingAbi as Abi, functionName: 'deadline' },
         { address, abi: crowdfundingAbi as Abi, functionName: 'getContractBalance' },
         { address, abi: crowdfundingAbi as Abi, functionName: 'owner' },
         { address, abi: crowdfundingAbi as Abi, functionName: 'getTiers' },
@@ -32,7 +31,6 @@ export type HydratedCampaign = {
     name: string;
     description: string;
     goal: bigint;
-    deadline: bigint;
     balance: bigint;
     owner: string;
     tiers: Tier[];
@@ -49,7 +47,6 @@ async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampai
         name,
         description,
         goal,
-        deadline,
         balance,
         owner,
         tiers,
@@ -61,7 +58,6 @@ async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampai
         name: name as string,
         description: description as string,
         goal: goal as bigint,
-        deadline: deadline as bigint,
         balance: balance as bigint,
         owner: owner as string,
         tiers: tiers as Tier[],
@@ -84,7 +80,6 @@ async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCa
             name,
             description,
             goal,
-            deadline,
             balance,
             owner,
             tiers,
@@ -96,7 +91,6 @@ async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCa
             name: name as string,
             description: description as string,
             goal: goal as bigint,
-            deadline: deadline as bigint,
             balance: balance as bigint,
             owner: owner as string,
             tiers: tiers as Tier[],

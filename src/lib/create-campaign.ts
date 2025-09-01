@@ -9,14 +9,12 @@ interface CreateCampaignParams {
     name: string;
     description: string;
     goal: bigint;
-    duration: bigint;
 }
 
 export async function createCampaign({
     name,
     description,
     goal,
-    duration
 }: CreateCampaignParams) {
     try {
         const tx = await writeContract(config, {
@@ -24,7 +22,7 @@ export async function createCampaign({
             abi: crowdfundingFactoryAbi,
             functionName: 'createCampaign',
             chain: sepolia,
-            args: [name, description, goal, duration]
+            args: [name, description, goal]
         });
 
         return tx;

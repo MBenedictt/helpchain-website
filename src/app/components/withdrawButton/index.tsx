@@ -5,10 +5,11 @@ import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Address } from "viem"
-import { withdraw } from "@/lib/withdraw"
+import { createWithdrawRequest } from "@/lib/withdraw"
 import { publicClient } from "@/lib/contracts"
 import { createClient } from "@supabase/supabase-js"
 import { toast } from "sonner"
+
 import {
     AlertDialog,
     AlertDialogTrigger,
@@ -22,7 +23,6 @@ import {
 } from "../ui/alert-dialog"
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip"
 import { Input } from "../ui/input"
-import { Textarea } from "../ui/textarea"
 import { BanknoteArrowDown } from "lucide-react"
 
 // Supabase client
@@ -33,13 +33,20 @@ const supabase = createClient(
 
 // Zod schema
 const withdrawSchema = z.object({
-    value: z
+    amount: z
         .string()
         .nonempty("Withdraw amount is required")
         .regex(/^\d+$/, "Must be a valid number"),
-    reason: z.string().nonempty("Reason is required"),
+    votingDuration: z.string().nonempty("Voting duration is required"),
+    proposal: z
+        .any()
+        .refine((file) => file?.length == 1, "Proposal file is required")
+        .refine(
+            (file) =>
+                ["application/pdf", "image/jpeg", "image/png"].includes(file?.[0]?.type),
+            "File must be a PDF, JPG, or PNG"
+        ),
 })
-
 type WithdrawForm = z.infer<typeof withdrawSchema>
 
 export default function WithdrawButton({ campaignAddress }: { campaignAddress: Address }) {
@@ -47,35 +54,65 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
 
     const form = useForm<WithdrawForm>({
         resolver: zodResolver(withdrawSchema),
-        defaultValues: { value: "", reason: "" },
+        defaultValues: { amount: "", votingDuration: "", proposal: [] },
     })
 
     const handleWithdraw = async (values: WithdrawForm) => {
         setLoading(true)
         try {
-            toast.loading("Sending withdraw transaction...")
+            toast.loading("Sending withdraw request...")
 
-            const txHash = await withdraw(campaignAddress)
+            // convert to bigint
+            const amountBigInt = BigInt(values.amount)
+            const votingDurationBigInt =
+                BigInt(values.votingDuration) * BigInt(24) * BigInt(60) * BigInt(60) // days -> seconds
+
+            // Call contract
+            const txHash = await createWithdrawRequest(
+                campaignAddress,
+                amountBigInt,
+                votingDurationBigInt
+            )
 
             toast.loading("Waiting for confirmation...")
-
             await publicClient.waitForTransactionReceipt({ hash: txHash })
 
-            // Save record in Supabase
+            // === Upload proposal file to Supabase ===
+            const file = values.proposal[0]
+            const fileExt = file.name.split(".").pop()
+            const filePath = `proposals/${campaignAddress}-${Date.now()}.${fileExt}`
+
+            const { error: uploadError } = await supabase.storage
+                .from("withdrawal-files") // ✅ your bucket name
+                .upload(filePath, file)
+
+            if (uploadError) throw uploadError
+
+            const { data: urlData } = supabase.storage
+                .from("withdrawal-files")
+                .getPublicUrl(filePath)
+
+            const proposalUrl = urlData.publicUrl
+
+            // === Insert into DB ===
             const { error } = await supabase.from("withdrawals").insert([
                 {
+                    id: Date.now(), // temporary unique ID
                     campaign_address: campaignAddress,
-                    value: values.value,
-                    reason: values.reason,
-                    date: new Date().toISOString(),
+                    amount: Number(values.amount), // ✅ numeric
+                    voting_deadline: new Date(
+                        Date.now() + Number(values.votingDuration) * 86400000
+                    ).toISOString(),
                     tx_hash: txHash,
+                    proposal_url: proposalUrl,
+                    requires_proof: true,
                 },
             ])
 
             if (error) throw error
 
             toast.dismiss()
-            toast.success("Withdraw successful!", {
+            toast.success("Withdraw request created!", {
                 closeButton: true,
                 position: "top-right",
             })
@@ -84,7 +121,7 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
         } catch (error) {
             toast.dismiss()
             console.error("Withdraw failed:", error)
-            toast.error("Failed to process withdraw. Try again later.", {
+            toast.error("Failed to create withdraw request. Try again later.", {
                 closeButton: true,
                 position: "top-right",
             })
@@ -99,10 +136,11 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
                 <TooltipTrigger asChild>
                     <AlertDialogTrigger asChild>
                         <button
-                            className="cursor-pointer bg-green-500 hover:bg-green-700 text-white text-sm font-bold p-2 rounded"
+                            className="flex items-center gap-2 cursor-pointer border border-gray-300 font-semibold text-black hover:bg-gray-100 hover:scale-105 py-2 px-4 max-sm:px-3 rounded transition"
                             disabled={loading}
                         >
-                            <BanknoteArrowDown size={16} />
+                            <BanknoteArrowDown size={20} />{" "}
+                            <span className="text-sm max-sm:hidden">Withdraw</span>
                         </button>
                     </AlertDialogTrigger>
                 </TooltipTrigger>
@@ -116,7 +154,7 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
                     <AlertDialogHeader>
                         <AlertDialogTitle>Withdraw Funds</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Please enter the withdraw amount and reason. This action will be recorded on-chain
+                            Please enter the withdraw amount and voting duration. This action will be recorded on-chain
                             and in our database.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -127,22 +165,42 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
                         <Input
                             type="number"
                             placeholder="Enter withdraw amount"
-                            {...form.register("value")}
+                            {...form.register("amount")}
                         />
-                        {form.formState.errors.value && (
-                            <p className="text-red-500 text-sm">{form.formState.errors.value.message}</p>
+                        {form.formState.errors.amount && (
+                            <p className="text-red-500 text-sm">
+                                {String(form.formState.errors.amount.message)}
+                            </p>
                         )}
                     </div>
 
-                    {/* Reason */}
+                    {/* Voting Duration */}
                     <div>
-                        <label className="block text-sm font-medium mb-1">Reason</label>
-                        <Textarea
-                            placeholder="Enter reason for withdraw"
-                            {...form.register("reason")}
+                        <label className="block text-sm font-medium mb-1">Voting Duration</label>
+                        <Input
+                            type="number"
+                            placeholder="Enter voting duration in days"
+                            {...form.register("votingDuration")}
                         />
-                        {form.formState.errors.reason && (
-                            <p className="text-red-500 text-sm">{form.formState.errors.reason.message}</p>
+                        {form.formState.errors.votingDuration && (
+                            <p className="text-red-500 text-sm">
+                                {String(form.formState.errors.votingDuration.message)}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Proposal File */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Proposal File</label>
+                        <Input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            {...form.register("proposal")}
+                        />
+                        {form.formState.errors.proposal?.message && (
+                            <p className="text-red-500 text-sm">
+                                {String(form.formState.errors.proposal.message)}
+                            </p>
                         )}
                     </div>
 

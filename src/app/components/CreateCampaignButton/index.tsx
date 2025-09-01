@@ -36,10 +36,6 @@ const formSchema = z.object({
         .string()
         .min(1, 'Goal is required')
         .regex(/^\d+$/, 'Must be a positive whole number'),
-    duration: z
-        .string()
-        .min(1, 'Duration is required')
-        .regex(/^\d+$/, 'Must be a positive whole number'),
     description: z.string().min(1, 'Description is required'),
 })
 
@@ -56,7 +52,6 @@ export default function CreateCampaignButton({ onCampaignCreated }: CreateCampai
         defaultValues: {
             name: '',
             goal: '',
-            duration: '',
             description: ''
         }
     });
@@ -69,8 +64,7 @@ export default function CreateCampaignButton({ onCampaignCreated }: CreateCampai
             const txHash = await createCampaign({
                 name: values.name,
                 description: values.description,
-                goal: BigInt(values.goal),
-                duration: BigInt(values.duration),
+                goal: BigInt(values.goal)
             });
 
             toast.loading("Waiting for confirmation...");
@@ -147,45 +141,25 @@ export default function CreateCampaignButton({ onCampaignCreated }: CreateCampai
                                 </FormItem>
                             )}
                         />
-                        <div className='grid grid-cols-2 max-md:grid-cols-1 gap-4'>
-                            <FormField
-                                control={form.control}
-                                name="goal"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className='font-[400] text-gray-600'>Goal</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="text"
-                                                placeholder="ex: 5000"
-                                                className="w-full p-2 mt-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-lime-300"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage className='text-[12px]' />
-                                    </FormItem>
-                                )}
-                            />
 
-                            <FormField
-                                control={form.control}
-                                name="duration"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className='font-[400] text-gray-600'>Campaign Length (days)</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="text"
-                                                placeholder="ex: 30"
-                                                className="w-full p-2 mt-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-lime-300"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage className='text-[12px]' />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
+                        <FormField
+                            control={form.control}
+                            name="goal"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className='font-[400] text-gray-600'>Goal</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="text"
+                                            placeholder="ex: 5000"
+                                            className="w-full p-2 mt-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-lime-300"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage className='text-[12px]' />
+                                </FormItem>
+                            )}
+                        />
 
                         <FormField
                             control={form.control}

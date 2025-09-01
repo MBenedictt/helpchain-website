@@ -8,8 +8,7 @@ import { Address } from 'viem';
 import Navbar from '../components/Navbar';
 import { Separator } from '../components/ui/separator';
 import CreateCampaignButton from '../components/CreateCampaignButton';
-import SkeletonCard from '../components/SkeletonCard';
-import { Ban, BanknoteArrowDown, ExternalLink, Eye, Power } from 'lucide-react';
+import { Ban, BanknoteArrowDown, ExternalLink, Power } from 'lucide-react';
 import { togglePause } from '@/lib/toggle-paused';
 import {
     Tooltip,
@@ -44,6 +43,7 @@ import { Progress } from '../components/ui/progress';
 import { Skeleton } from '../components/ui/skeleton';
 import Image from 'next/image';
 import { DonationDetailButton } from '../components/DonationDetailButton';
+import WithdrawButton from '../components/withdrawButton';
 
 type Campaign = {
     address: string;
@@ -230,16 +230,7 @@ export default function Dashboard() {
 
                                             <div className="mt-4 flex justify-start gap-2">
                                                 {!c.paused && (
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <button className="flex items-center gap-2 cursor-pointer border border-gray-300 font-semibold text-black hover:bg-gray-100 hover:scale-105 py-2 px-4 max-sm:px-3 rounded transition" disabled>
-                                                                <BanknoteArrowDown size={20} /> <span className='text-sm max-sm:hidden'>Withdraw</span>
-                                                            </button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>Withdraw (Coming Soon)</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
+                                                    <WithdrawButton campaignAddress={c.address as Address} />
                                                 )}
 
                                                 {!c.paused && (

@@ -1,7 +1,11 @@
 import { walletClient, crowdfundingAbi } from "./contracts";
 import { Address } from "viem";
 
-export async function withdraw(campaignAddress: Address) {
+export async function createWithdrawRequest(
+    campaignAddress: Address,
+    amount: bigint,
+    votingDuration: bigint
+) {
     if (!walletClient) throw new Error("Wallet not connected");
 
     const [account] = await walletClient.getAddresses();
@@ -9,7 +13,8 @@ export async function withdraw(campaignAddress: Address) {
     return walletClient.writeContract({
         address: campaignAddress,
         abi: crowdfundingAbi,
-        functionName: "withdraw",
+        functionName: "createWithdrawRequest",
+        args: [amount, votingDuration],
         account,
     });
 }

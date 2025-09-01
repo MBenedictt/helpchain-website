@@ -72,7 +72,7 @@ async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCa
 
     const hydratedCampaigns = [];
     let resultIndex = 0;
-    const CALLS_PER_CAMPAIGN = 8;
+    const CALLS_PER_CAMPAIGN = 7;
 
     for (const campaign of campaigns) {
         const campaignResults = results.slice(resultIndex, resultIndex + CALLS_PER_CAMPAIGN);

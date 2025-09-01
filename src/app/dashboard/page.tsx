@@ -8,8 +8,8 @@ import { Address } from 'viem';
 import Navbar from '../components/Navbar';
 import { Separator } from '../components/ui/separator';
 import CreateCampaignButton from '../components/CreateCampaignButton';
-import { Ban, BanknoteArrowDown, ExternalLink, Power } from 'lucide-react';
-import { togglePause } from '@/lib/toggle-paused';
+import { Ban, ExternalLink, Power } from 'lucide-react';
+import { endCampaign } from '@/lib/end-campaign';
 import {
     Tooltip,
     TooltipContent,
@@ -57,7 +57,7 @@ type Campaign = {
         amount: bigint;
         backers: bigint;
     }[];
-    paused: boolean;
+    state: number;
 };
 
 type Contribution = {
@@ -107,31 +107,29 @@ export default function Dashboard() {
         loadDonatedCampaigns();
     }, [address]);
 
-    const handleActive = async (campaignAddress: Address, paused: boolean) => {
+    const handleEndCampaign = async (campaignAddress: Address) => {
         try {
-            toast.loading("Sending transaction...")
+            toast.loading("Ending campaign...");
 
-            const txHash = await togglePause(campaignAddress)
+            const txHash = await endCampaign(campaignAddress);
 
-            toast.loading("Waiting for confirmation...")
+            toast.loading("Waiting for confirmation...");
 
-            await publicClient.waitForTransactionReceipt({ hash: txHash })
+            await publicClient.waitForTransactionReceipt({ hash: txHash });
 
-            toast.dismiss()
-            toast.success(
-                paused ? "Campaign activated successfully!" : "Campaign paused successfully!",
-                {
-                    closeButton: true,
-                    position: "top-right",
-                }
-            )
-        } catch (err) {
-            toast.dismiss()
-            console.error("Failed to toggle pause:", err)
-            toast.error("Failed to toggle pause. Try again later.", {
+            toast.dismiss();
+            toast.success("Campaign ended successfully!", {
                 closeButton: true,
                 position: "top-right",
-            })
+            });
+            await loadUserCampaigns(); // refresh state
+        } catch (err) {
+            toast.dismiss();
+            console.error(err);
+            toast.error("Failed to end campaign.", {
+                closeButton: true,
+                position: "top-right",
+            });
         }
     }
 
@@ -208,13 +206,16 @@ export default function Dashboard() {
                                             <div className='flex justify-between items-center'>
                                                 <div
                                                     className={`px-3 py-1 rounded-full text-[10px] font-medium w-fit mb-2
-                                                    ${c.paused
-                                                            ? 'bg-red-100 text-red-800'
-                                                            : 'bg-green-100 text-green-800'
+                                                    ${c.state === 0
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : c.state === 1
+                                                                ? 'bg-blue-100 text-blue-800'
+                                                                : 'bg-red-100 text-red-800'
                                                         }`}
                                                 >
-                                                    {c.paused ? 'Not Active' : 'Active'}
+                                                    {c.state === 0 ? 'Active' : c.state === 1 ? 'Successful' : 'Failed'}
                                                 </div>
+
 
                                                 <p className="text-gray-500 font-semibold">
                                                     ${c.goal.toString()} Goal
@@ -229,68 +230,52 @@ export default function Dashboard() {
                                             </p>
 
                                             <div className="mt-4 flex justify-start gap-2">
-                                                {!c.paused && (
+                                                {c.state === 0 && (
                                                     <WithdrawButton campaignAddress={c.address as Address} />
                                                 )}
 
-                                                {!c.paused && (
+                                                {c.state === 0 && (
                                                     <AddTiersButton campaignAddress={c.address as Address} />
                                                 )}
 
-                                                <AlertDialog>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <AlertDialogTrigger asChild>
-                                                                <button
-                                                                    className={`cursor-pointer text-sm font-semibold py-2 px-3 rounded transition
-                                                                        ${c.paused
-                                                                            ? 'bg-lime-100 border border-lime-300 hover:bg-lime-200 text-black hover:scale-105'
-                                                                            : 'bg-red-100 border border-red-300 hover:bg-red-200 text-red-600 hover:scale-105'
-                                                                        }`}
-                                                                >
-                                                                    {c.paused ? (
-                                                                        <div className='flex items-center gap-2'>
-                                                                            <Power size={16} /> <span className='text-sm max-sm:hidden'>Activate</span>
-                                                                        </div>
-                                                                    ) : (
+                                                {c.state === 0 && (
+                                                    <AlertDialog>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <AlertDialogTrigger asChild>
+                                                                    <button
+                                                                        className="cursor-pointer bg-red-100 border border-red-300 hover:bg-red-200 text-red-600 px-3 py-2 rounded hover:scale-105 transition"
+                                                                    >
                                                                         <Ban size={16} />
-                                                                    )}
-                                                                </button>
-                                                            </AlertDialogTrigger>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>{c.paused ? 'Activate' : 'Deactivate'}</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
+                                                                    </button>
+                                                                </AlertDialogTrigger>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>End Campaign</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
 
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>
-                                                                {c.paused
-                                                                    ? 'Activate Campaign?'
-                                                                    : 'Deactivate Campaign?'}
-                                                            </AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                {c.paused
-                                                                    ? 'This will make the campaign active and visible to donors.'
-                                                                    : 'This will hide the campaign from new contributions. You can activate it again at any time.'}
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel className="cursor-pointer">
-                                                                Cancel
-                                                            </AlertDialogCancel>
-                                                            <AlertDialogAction
-                                                                className="cursor-pointer bg-lime-300 hover:bg-lime-400 text-black"
-                                                                onClick={() =>
-                                                                    handleActive(c.address as Address, c.paused)
-                                                                }
-                                                            >
-                                                                {c.paused ? 'Activate' : 'Deactivate'}
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>End Campaign?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    This will finalize the campaign permanently.
+                                                                    - If no withdrawals happened, it will be marked **Failed**.
+                                                                    - Otherwise, it will be marked **Successful**.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    className="cursor-pointer bg-red-300 hover:bg-red-400 text-black"
+                                                                    onClick={() => handleEndCampaign(c.address as Address)}
+                                                                >
+                                                                    End Campaign
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

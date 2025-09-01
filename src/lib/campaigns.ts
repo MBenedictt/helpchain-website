@@ -9,7 +9,7 @@ function getCampaignDetailsMulticall(address: Address) {
         { address, abi: crowdfundingAbi as Abi, functionName: 'getContractBalance' },
         { address, abi: crowdfundingAbi as Abi, functionName: 'owner' },
         { address, abi: crowdfundingAbi as Abi, functionName: 'getTiers' },
-        { address, abi: crowdfundingAbi as Abi, functionName: 'paused' }
+        { address, abi: crowdfundingAbi as Abi, functionName: 'state' }
     ];
 }
 
@@ -34,7 +34,7 @@ export type HydratedCampaign = {
     balance: bigint;
     owner: string;
     tiers: Tier[];
-    paused: boolean;
+    state: number;
 };
 
 
@@ -50,7 +50,7 @@ async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampai
         balance,
         owner,
         tiers,
-        paused
+        state
     ] = (await publicClient.multicall({ contracts: multicallCalls })).map(result => result.result);
 
     return {
@@ -61,7 +61,7 @@ async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampai
         balance: balance as bigint,
         owner: owner as string,
         tiers: tiers as Tier[],
-        paused: paused as boolean
+        state: state as number
     };
 }
 
@@ -83,7 +83,7 @@ async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCa
             balance,
             owner,
             tiers,
-            paused
+            state
         ] = campaignResults.map(res => res.result);
 
         hydratedCampaigns.push({
@@ -94,7 +94,7 @@ async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCa
             balance: balance as bigint,
             owner: owner as string,
             tiers: tiers as Tier[],
-            paused: paused as boolean
+            state: state as number
         });
         resultIndex += CALLS_PER_CAMPAIGN;
     }

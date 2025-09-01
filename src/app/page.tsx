@@ -21,7 +21,7 @@ type Campaign = {
   goal: bigint;
   balance: bigint;
   owner: string;
-  paused: boolean;
+  state: number;
 };
 
 export default function Home() {
@@ -135,7 +135,7 @@ export default function Home() {
           ) : campaigns.length > 0 ? (
             <div className="grid md:grid-cols-3 gap-6" data-aos="fade-up" data-aos-delay="400" data-aos-once="true">
               {campaigns
-                .filter((campaign) => !campaign.paused)
+                .filter((campaign) => campaign.state === 0)
                 .reverse()
                 .slice(0, 3)
                 .map((campaign) => (

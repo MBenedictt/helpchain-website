@@ -26,7 +26,7 @@ type Campaign = {
     goal: bigint;
     balance: bigint;
     owner: string;
-    paused: boolean;
+    state: number;
 };
 
 const PER_PAGE = 6;
@@ -117,7 +117,7 @@ export default function CampaignsPage() {
                         <>
                             <div className="grid md:grid-cols-3 gap-6 mb-10">
                                 {campaigns
-                                    .filter((campaign) => !campaign.paused)
+                                    .filter((campaign) => campaign.state === 0)
                                     .reverse()
                                     .map((campaign) => (
                                         <CampaignCard key={campaign.address} {...campaign} />

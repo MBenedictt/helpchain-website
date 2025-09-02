@@ -52,9 +52,8 @@ export async function fetchActiveWithdrawalRequests(
                     args: [BigInt(w.contract_withdraw_id)],
                 });
 
-                // Format weights as numbers (assuming contract stores them in wei, 18 decimals)
-                const yesWeight = Number(formatUnits(req.yesWeight, 18));
-                const noWeight = Number(formatUnits(req.noWeight, 18));
+                const yesWeight = Number(req[2]);
+                const noWeight = Number(req[3]);
                 const total = yesWeight + noWeight;
                 const yesPercentage = total > 0 ? (yesWeight / total) * 100 : 0;
 

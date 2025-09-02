@@ -79,7 +79,7 @@ export default function AddTiersButton({ campaignAddress }: AddTiersButtonProps)
         if (!selectedTier) return;
         try {
             setRemoving(true);
-            toast.loading("Sending transaction...");
+            toast.loading("Removing Tier...");
 
             const txHash = await removeTier(campaignAddress, selectedTier.index);
 
@@ -111,7 +111,7 @@ export default function AddTiersButton({ campaignAddress }: AddTiersButtonProps)
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setSubmitting(true);
         try {
-            toast.loading("Sending transaction...");
+            toast.loading("Adding Tier...");
 
             const txHash = await addTier(
                 campaignAddress,

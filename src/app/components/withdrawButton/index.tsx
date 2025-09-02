@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState } from "react"
@@ -6,7 +7,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Address } from "viem"
 import { createWithdrawRequest } from "@/lib/withdraw"
-import { publicClient } from "@/lib/contracts"
+import { crowdfundingAbi, publicClient } from "@/lib/contracts"
 import { createClient } from "@supabase/supabase-js"
 import { toast } from "sonner"
 
@@ -19,19 +20,25 @@ import {
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogCancel,
-    AlertDialogAction,
 } from "../ui/alert-dialog"
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip"
 import { Input } from "../ui/input"
+import { Button } from "../ui/button"
+import {
+    Form,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormControl,
+    FormMessage,
+} from "../ui/form"
 import { BanknoteArrowDown } from "lucide-react"
 
-// Supabase client
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// Zod schema
 const withdrawSchema = z.object({
     amount: z
         .string()
@@ -47,6 +54,7 @@ const withdrawSchema = z.object({
             "File must be a PDF, JPG, or PNG"
         ),
 })
+
 type WithdrawForm = z.infer<typeof withdrawSchema>
 
 export default function WithdrawButton({ campaignAddress }: { campaignAddress: Address }) {
@@ -58,77 +66,79 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
     })
 
     const handleWithdraw = async (values: WithdrawForm) => {
-        setLoading(true)
+        setLoading(true);
         try {
-            toast.loading("Sending withdraw request...")
+            toast.loading("Sending withdraw request...");
 
-            // convert to bigint
-            const amountBigInt = BigInt(values.amount)
-            const votingDurationBigInt =
-                BigInt(values.votingDuration) * BigInt(24) * BigInt(60) * BigInt(60) // days -> seconds
+            const amountBigInt = BigInt(values.amount);
+            const votingDurationBigInt = BigInt(values.votingDuration);
 
-            // Call contract
+            // 1. Call contract
             const txHash = await createWithdrawRequest(
                 campaignAddress,
                 amountBigInt,
                 votingDurationBigInt
-            )
+            );
 
-            toast.loading("Waiting for confirmation...")
-            await publicClient.waitForTransactionReceipt({ hash: txHash })
+            toast.loading("Waiting for confirmation...");
+            await publicClient.waitForTransactionReceipt({ hash: txHash });
 
-            // === Upload proposal file to Supabase ===
-            const file = values.proposal[0]
-            const fileExt = file.name.split(".").pop()
-            const filePath = `proposals/${campaignAddress}-${Date.now()}.${fileExt}`
+            // 2. Get latest withdraw request ID from contract
+            const withdrawCount: any = await publicClient.readContract({
+                address: campaignAddress as Address,
+                abi: crowdfundingAbi,
+                functionName: "withdrawRequestCount",
+            });
+
+            const newWithdrawId = Number(withdrawCount);
+
+            // 3. Upload proposal file to Supabase storage
+            const file = values.proposal[0];
+            const fileExt = file.name.split(".").pop();
+            const filePath = `proposals/${campaignAddress}-${Date.now()}.${fileExt}`;
 
             const { error: uploadError } = await supabase.storage
-                .from("withdrawal-files") // ✅ your bucket name
-                .upload(filePath, file)
+                .from("withdrawal-files")
+                .upload(filePath, file);
 
-            if (uploadError) throw uploadError
+            if (uploadError) throw uploadError;
 
             const { data: urlData } = supabase.storage
                 .from("withdrawal-files")
-                .getPublicUrl(filePath)
+                .getPublicUrl(filePath);
 
-            const proposalUrl = urlData.publicUrl
+            const proposalUrl = urlData.publicUrl;
 
-            // === Insert into DB ===
-            const { error } = await supabase.from("withdrawals").insert([
-                {
-                    id: Date.now(), // temporary unique ID
-                    campaign_address: campaignAddress,
-                    amount: Number(values.amount), // ✅ numeric
-                    voting_deadline: new Date(
-                        Date.now() + Number(values.votingDuration) * 86400000
-                    ).toISOString(),
-                    tx_hash: txHash,
-                    proposal_url: proposalUrl,
-                    requires_proof: true,
-                },
-            ])
+            // 4. Save into DB via API route
+            const res = await fetch("/api/withdraw-request", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    campaignAddress,
+                    contractWithdrawId: newWithdrawId,
+                    amountWei: String(values.amount),
+                    txHash,
+                    votingDurationSec: Number(values.votingDuration),
+                    proposalUrl,
+                }),
+            });
 
-            if (error) throw error
+            const data = await res.json();
+            if (!res.ok || !data.ok) {
+                throw new Error(data.error || "Failed to save withdraw request");
+            }
 
-            toast.dismiss()
-            toast.success("Withdraw request created!", {
-                closeButton: true,
-                position: "top-right",
-            })
-
-            form.reset()
+            toast.dismiss();
+            toast.success("Withdraw request created!");
+            form.reset();
         } catch (error) {
-            toast.dismiss()
-            console.error("Withdraw failed:", error)
-            toast.error("Failed to create withdraw request. Try again later.", {
-                closeButton: true,
-                position: "top-right",
-            })
+            toast.dismiss();
+            console.error("Withdraw failed:", error);
+            toast.error("Failed to create withdraw request.");
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     return (
         <AlertDialog>
@@ -139,7 +149,7 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
                             className="flex items-center gap-2 cursor-pointer border border-gray-300 font-semibold text-black hover:bg-gray-100 hover:scale-105 py-2 px-4 max-sm:px-3 rounded transition"
                             disabled={loading}
                         >
-                            <BanknoteArrowDown size={20} />{" "}
+                            <BanknoteArrowDown size={20} />
                             <span className="text-sm max-sm:hidden">Withdraw</span>
                         </button>
                     </AlertDialogTrigger>
@@ -150,73 +160,75 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
             </Tooltip>
 
             <AlertDialogContent>
-                <form onSubmit={form.handleSubmit(handleWithdraw)} className="space-y-4">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Withdraw Funds</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Please enter the withdraw amount and voting duration. This action will be recorded on-chain
-                            and in our database.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleWithdraw)} className="space-y-4">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Withdraw Funds</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Please enter the withdraw amount and voting duration.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
 
-                    {/* Amount */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Amount</label>
-                        <Input
-                            type="number"
-                            placeholder="Enter withdraw amount"
-                            {...form.register("amount")}
+                        <FormField
+                            control={form.control}
+                            name="amount"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Amount</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="Enter withdraw amount" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
                         />
-                        {form.formState.errors.amount && (
-                            <p className="text-red-500 text-sm">
-                                {String(form.formState.errors.amount.message)}
-                            </p>
-                        )}
-                    </div>
 
-                    {/* Voting Duration */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Voting Duration</label>
-                        <Input
-                            type="number"
-                            placeholder="Enter voting duration in days"
-                            {...form.register("votingDuration")}
+                        <FormField
+                            control={form.control}
+                            name="votingDuration"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Voting Duration (days)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="Enter duration in days" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
                         />
-                        {form.formState.errors.votingDuration && (
-                            <p className="text-red-500 text-sm">
-                                {String(form.formState.errors.votingDuration.message)}
-                            </p>
-                        )}
-                    </div>
 
-                    {/* Proposal File */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Proposal File</label>
-                        <Input
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            {...form.register("proposal")}
+                        <FormField
+                            control={form.control}
+                            name="proposal"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Proposal File</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="file"
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            onChange={(e) => field.onChange(e.target.files)}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
                         />
-                        {form.formState.errors.proposal?.message && (
-                            <p className="text-red-500 text-sm">
-                                {String(form.formState.errors.proposal.message)}
-                            </p>
-                        )}
-                    </div>
 
-                    <AlertDialogFooter>
-                        <AlertDialogCancel type="button" className="cursor-pointer">
-                            Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                            type="submit"
-                            className="cursor-pointer bg-lime-300 hover:bg-lime-400 text-black"
-                            disabled={loading}
-                        >
-                            {loading ? "Confirming..." : "Yes, Withdraw"}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </form>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel type="button" className="cursor-pointer">
+                                Cancel
+                            </AlertDialogCancel>
+                            <Button
+                                type="submit"
+                                className="cursor-pointer bg-lime-300 hover:bg-lime-400 text-black"
+                                disabled={loading}
+                            >
+                                {loading ? "Confirming..." : "Yes, Withdraw"}
+                            </Button>
+                        </AlertDialogFooter>
+                    </form>
+                </Form>
             </AlertDialogContent>
         </AlertDialog>
     )

@@ -26,6 +26,9 @@ import DonationLogs from "@/app/components/DonationLogs";
 import Footer from "@/app/components/Footer";
 import LoadingPage from "@/app/components/LoadingPage";
 import { DonationLog, fetchDonationLogs } from "@/lib/get-logs";
+import { Check, FileText, X } from "lucide-react";
+import { fetchActiveWithdrawalRequests, WithdrawalWithVotes } from "@/lib/withdrawals";
+import { useAccount } from "wagmi";
 
 type Campaign = {
     address: string;
@@ -68,6 +71,8 @@ export default function CampaignPage() {
     const [loading, setLoading] = useState(true);
     const [sendingFund, setSendingFund] = useState(false);
     const [donations, setDonations] = useState<DonationLog[]>([]);
+    const [withdrawalsReq, setWithdrawalsReq] = useState<WithdrawalWithVotes[]>([]);
+    const { address: connectedAddress } = useAccount();
 
     const form = useForm<z.infer<typeof donationSchema>>({
         resolver: zodResolver(donationSchema),
@@ -87,13 +92,17 @@ export default function CampaignPage() {
 
             setCampaign(data);
 
-            // fetch donations immediately after campaign loads
+            // fetch donations
             const logs = await fetchDonationLogs(data.address as `0x${string}`);
             setDonations(logs);
 
+            // fetch active withdrawals
+            const activeWithdrawals = await fetchActiveWithdrawalRequests(data.address);
+            setWithdrawalsReq(activeWithdrawals);
+
         } catch (err) {
-            console.error("Error loading campaign or donations:", err);
-            toast.error("Failed to fetch campaign or donations, try again later.", {
+            console.error("Error loading campaign, donations, or withdrawals:", err);
+            toast.error("Failed to fetch campaign data, try again later.", {
                 closeButton: true,
                 position: "top-right",
             });
@@ -214,6 +223,49 @@ export default function CampaignPage() {
                                     ${Number(campaign!.goal)} Goal
                                 </p>
                             </div>
+                            {withdrawalsReq.length > 0 && connectedAddress?.toLowerCase() !== campaign!.owner.toLowerCase() && (
+                                withdrawalsReq.map((w) => (
+                                    <div
+                                        key={w.id}
+                                        className="w-full p-5 rounded border border-gray-300 bg-lime-50 mt-4 flex justify-between items-center"
+                                    >
+                                        <div>
+                                            <h2 className="text-sm font-semibold text-gray-500">
+                                                {shortenAddress(campaign!.owner)} is requesting to withdraw
+                                            </h2>
+                                            <h1 className="text-3xl font-bold my-2">${w.amount}</h1>
+
+                                            {w.proposal_url && (
+                                                <Link href={w.proposal_url} target="_blank">
+                                                    <div className="flex items-center bg-gray-50 hover:bg-gray-200 text-gray-500 border border-gray-300 font-semibold py-1 px-2 rounded text-sm w-fit">
+                                                        <FileText size={12} />
+                                                        <span className="ml-1 text-[12px]">View Proposal</span>
+                                                    </div>
+                                                </Link>
+                                            )}
+
+                                            <p className="text-[12px] text-gray-500 mt-2">
+                                                <span className="font-semibold">
+                                                    {w.yesPercentage.toFixed(2)}%
+                                                </span>{" "}
+                                                of the backers voted yes for this withdrawal request.
+                                            </p>
+                                        </div>
+
+                                        <div className="flex flex-col gap-2 items-center">
+                                            <p className="text-sm text-gray-500">Vote</p>
+                                            <div className="flex gap-2 items-center">
+                                                <button className="cursor-pointer bg-gray-50 border border-gray-300 hover:bg-green-50 text-gray-500 py-1 px-2 rounded text-sm">
+                                                    <Check size={24} className="text-green-500" />
+                                                </button>
+                                                <button className="cursor-pointer bg-gray-50 border border-gray-300 hover:bg-red-50 text-gray-500 py-1 px-2 rounded text-sm">
+                                                    <X size={24} className="text-red-500" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                             <Form {...form}>
                                 <form
                                     onSubmit={form.handleSubmit(onSubmit)}

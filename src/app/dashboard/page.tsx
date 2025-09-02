@@ -259,15 +259,17 @@ export default function Dashboard() {
                                                             <AlertDialogHeader>
                                                                 <AlertDialogTitle>End Campaign?</AlertDialogTitle>
                                                                 <AlertDialogDescription>
-                                                                    This will finalize the campaign permanently.
-                                                                    - If no withdrawals happened, it will be marked **Failed**.
-                                                                    - Otherwise, it will be marked **Successful**.
+                                                                    <strong className='text-black font-semibold'>This will finalize the campaign permanently.</strong>
+                                                                    <br />
+                                                                    - If no withdrawals happened, it will be marked <strong>Failed</strong>.
+                                                                    <br />
+                                                                    - Otherwise, it will be marked <strong>Successful</strong>.
                                                                 </AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogCancel className='cursor-pointer'>Cancel</AlertDialogCancel>
                                                                 <AlertDialogAction
-                                                                    className="cursor-pointer bg-red-300 hover:bg-red-400 text-black"
+                                                                    className="cursor-pointer bg-lime-300 hover:bg-lime-400 text-black"
                                                                     onClick={() => handleEndCampaign(c.address as Address)}
                                                                 >
                                                                     End Campaign

@@ -59,6 +59,7 @@ type WithdrawForm = z.infer<typeof withdrawSchema>
 
 export default function WithdrawButton({ campaignAddress }: { campaignAddress: Address }) {
     const [loading, setLoading] = useState(false)
+    const [open, setOpen] = useState(false);
 
     const form = useForm<WithdrawForm>({
         resolver: zodResolver(withdrawSchema),
@@ -131,6 +132,7 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
             toast.dismiss();
             toast.success("Withdraw request created!");
             form.reset();
+            setOpen(false);
         } catch (error) {
             toast.dismiss();
             console.error("Withdraw failed:", error);
@@ -141,13 +143,14 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
     };
 
     return (
-        <AlertDialog>
+        <AlertDialog open={open} onOpenChange={setOpen}>
             <Tooltip>
                 <TooltipTrigger asChild>
                     <AlertDialogTrigger asChild>
                         <button
                             className="flex items-center gap-2 cursor-pointer border border-gray-300 font-semibold text-black hover:bg-gray-100 hover:scale-105 py-2 px-4 max-sm:px-3 rounded transition"
                             disabled={loading}
+                            onClick={() => setOpen(true)}
                         >
                             <BanknoteArrowDown size={20} />
                             <span className="text-sm max-sm:hidden">Withdraw</span>

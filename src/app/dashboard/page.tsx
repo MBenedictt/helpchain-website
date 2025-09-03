@@ -188,15 +188,14 @@ export default function Dashboard() {
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
                                                         <Link
-                                                            href={`https://sepolia.etherscan.io/address/${c.address}`}
-                                                            target="_blank"
+                                                            href={`/campaign/${c.address}`}
                                                             className="text-gray-400 hover:text-gray-600 bg-gray-100 p-1 rounded transition"
                                                         >
                                                             <ExternalLink className='w-[20px] h-[20px] max-md:w-[16px] max-md:h-[16px]' />
                                                         </Link>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                        <p>View on-chain</p>
+                                                        <p>View Campaign</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </div>

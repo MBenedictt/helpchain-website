@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabaseClient } from "./supabase/supabaseClient";
 import { crowdfundingAbi, publicClient } from "./contracts";
-import { Address, formatUnits } from "viem";
+import { Address } from "viem";
 
 export type Withdrawal = {
     id: number;
@@ -15,12 +15,14 @@ export type Withdrawal = {
     success: boolean | null;
     tx_hash: string | null;
     created_at: string;
+    voting_deadline: string;
 };
 
 export type WithdrawalWithVotes = Withdrawal & {
     yesWeight: number;
     noWeight: number;
     yesPercentage: number;
+    userVote?: number;
 };
 
 export async function fetchActiveWithdrawalRequests(

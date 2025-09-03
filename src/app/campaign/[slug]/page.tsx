@@ -26,10 +26,22 @@ import DonationLogs from "@/app/components/DonationLogs";
 import Footer from "@/app/components/Footer";
 import LoadingPage from "@/app/components/LoadingPage";
 import { DonationLog, fetchDonationLogs } from "@/lib/get-logs";
-import { Check, FileText, X } from "lucide-react";
+import { Check, FileText, Loader, X } from "lucide-react";
 import { fetchActiveWithdrawalRequests, WithdrawalWithVotes } from "@/lib/withdrawals";
 import { useAccount } from "wagmi";
 import { checkIsBacker } from "@/lib/check-backer";
+import { getUserVote } from "@/lib/get-vote";
+import { voteWithdrawRequest } from "@/lib/vote";
+import { differenceInDays } from "date-fns";
+
+function formatVotingDeadline(createdAt: string, deadline: string) {
+    const created = new Date(createdAt);
+    const end = new Date(deadline);
+
+    const days = differenceInDays(end, created);
+
+    return `Voting ends in ${days} day${days > 1 ? "s" : ""}`;
+}
 
 type Campaign = {
     address: string;
@@ -75,6 +87,7 @@ export default function CampaignPage() {
     const [withdrawalsReq, setWithdrawalsReq] = useState<WithdrawalWithVotes[]>([]);
     const { address: connectedAddress } = useAccount();
     const [isBackerUser, setIsBackerUser] = useState(false);
+    const [loadingVote, setLoadingVote] = useState(false);
 
     const form = useForm<z.infer<typeof donationSchema>>({
         resolver: zodResolver(donationSchema),
@@ -91,7 +104,6 @@ export default function CampaignPage() {
                 notFound();
                 return;
             }
-
             setCampaign(data);
 
             // fetch donations
@@ -99,9 +111,34 @@ export default function CampaignPage() {
             setDonations(logs);
 
             // fetch active withdrawals
-            const activeWithdrawals = await fetchActiveWithdrawalRequests((data.address as `0x${string}`).toLowerCase());
-            setWithdrawalsReq(activeWithdrawals);
+            const activeWithdrawals = await fetchActiveWithdrawalRequests(
+                (data.address as `0x${string}`).toLowerCase()
+            );
 
+            // if connected user is a backer, fetch their vote for each withdrawal
+            let withdrawalsWithVotes = activeWithdrawals;
+            if (connectedAddress) {
+                const backer = await checkIsBacker(
+                    data.address as Address,
+                    connectedAddress as Address
+                );
+                setIsBackerUser(backer);
+
+                if (backer) {
+                    withdrawalsWithVotes = await Promise.all(
+                        activeWithdrawals.map(async (w) => {
+                            const vote = await getUserVote(
+                                data.address as Address,
+                                BigInt(w.contract_withdraw_id),
+                                connectedAddress as Address
+                            );
+                            return { ...w, userVote: vote }; // attach vote info
+                        })
+                    );
+                }
+            }
+
+            setWithdrawalsReq(withdrawalsWithVotes);
         } catch (err) {
             console.error("Error loading campaign, donations, or withdrawals:", err);
             toast.error("Failed to fetch campaign data, try again later.", {
@@ -111,26 +148,11 @@ export default function CampaignPage() {
         } finally {
             setLoading(false);
         }
-    }, [slug]);
+    }, [slug, connectedAddress]);
 
     useEffect(() => {
         load();
     }, [load]);
-
-    useEffect(() => {
-        const loadBackerStatus = async () => {
-            if (!connectedAddress || !campaign) return;
-
-            const backer = await checkIsBacker(
-                campaign.address as Address,
-                connectedAddress as Address
-            );
-
-            setIsBackerUser(backer);
-        };
-
-        loadBackerStatus();
-    }, [connectedAddress, campaign]);
 
     const onSubmit = async (values: z.infer<typeof donationSchema>) => {
         let tierIndexToSend: number;
@@ -204,6 +226,47 @@ export default function CampaignPage() {
         }
     };
 
+    const handleVote = async (withdrawId: number, approve: boolean) => {
+        if (!campaign || !connectedAddress) return;
+
+        try {
+            setLoadingVote(true);
+
+            // 1. Send vote transaction
+            toast.loading("Sending vote...");
+
+            const txHash = await voteWithdrawRequest(
+                campaign.address as Address,
+                BigInt(withdrawId),
+                approve,
+                connectedAddress as Address
+            );
+
+            // 2. Waiting for confirmation
+            toast.loading("Waiting for confirmation...");
+
+            await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+            // 3. Refresh data
+            await load();
+
+            toast.dismiss();
+            toast.success("Vote submitted!", {
+                closeButton: true,
+                position: "top-right",
+            });
+        } catch (err) {
+            toast.dismiss();
+            console.error("Vote error:", err);
+            toast.error("Failed to submit vote.", {
+                closeButton: true,
+                position: "top-right",
+            });
+        } finally {
+            setLoadingVote(false);
+        }
+    };
+
     if (loading) {
         return (
             <LoadingPage isLoading={loading} />
@@ -240,8 +303,7 @@ export default function CampaignPage() {
                                     ${Number(campaign!.goal)} Goal
                                 </p>
                             </div>
-                            {withdrawalsReq.length > 0 &&
-                                connectedAddress?.toLowerCase() !== campaign!.owner.toLowerCase() &&
+                            {withdrawalsReq.length > 0 && connectedAddress?.toLowerCase() !== campaign!.owner.toLowerCase() &&
                                 isBackerUser && (
                                     withdrawalsReq.map((w) => (
                                         <div
@@ -271,17 +333,55 @@ export default function CampaignPage() {
                                                 </p>
                                             </div>
 
-                                            <div className="flex flex-col gap-2 items-center">
-                                                <p className="text-sm text-gray-500">Vote</p>
-                                                <div className="flex gap-2 items-center">
-                                                    <button className="cursor-pointer bg-gray-50 border border-gray-300 hover:bg-green-50 text-gray-500 py-1 px-2 rounded text-sm">
-                                                        <Check size={24} className="text-green-500" />
-                                                    </button>
-                                                    <button className="cursor-pointer bg-gray-50 border border-gray-300 hover:bg-red-50 text-gray-500 py-1 px-2 rounded text-sm">
-                                                        <X size={24} className="text-red-500" />
-                                                    </button>
+                                            {w.userVote === 0 && (
+                                                <div className="flex flex-col gap-2 items-center">
+                                                    <div className="flex flex-col gap-2 justify-between items-center">
+                                                        <p className="text-sm text-gray-500">Vote</p>
+
+                                                        {loadingVote ? (
+                                                            <div className="flex gap-2 items-center my-2">
+                                                                <Loader size={16} className="animate-spin text-gray-500" />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex gap-2 items-center">
+                                                                <button
+                                                                    className="cursor-pointer bg-gray-50 border border-gray-300 hover:bg-green-50 text-gray-500 py-1 px-2 rounded text-sm"
+                                                                    onClick={() => handleVote(w.contract_withdraw_id, true)}
+                                                                >
+                                                                    <Check size={24} className="text-green-500" />
+                                                                </button>
+                                                                <button
+                                                                    className="cursor-pointer bg-gray-50 border border-gray-300 hover:bg-red-50 text-gray-500 py-1 px-2 rounded text-sm"
+                                                                    onClick={() => handleVote(w.contract_withdraw_id, false)}
+                                                                >
+                                                                    <X size={24} className="text-red-500" />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <p className="text-sm text-gray-500">
+                                                        {formatVotingDeadline(w.created_at, w.voting_deadline)}
+                                                    </p>
                                                 </div>
-                                            </div>
+                                            )}
+
+                                            {w.userVote === 1 && (
+                                                <div className="flex flex-col gap-2 items-center">
+                                                    <p className="text-sm text-green-600 font-semibold w-3/4 text-center">
+                                                        You Approved This Request
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {w.userVote === 2 && (
+                                                <div className="flex flex-col gap-2 items-center">
+                                                    <p className="text-sm text-red-600 font-semibold w-3/4 text-center">
+                                                        You Rejected This Request
+                                                    </p>
+                                                </div>
+                                            )}
+
                                         </div>
                                     ))
                                 )}

@@ -20,7 +20,6 @@ export type Withdrawal = {
 
 export type WithdrawalWithVotes = Withdrawal & {
     yesWeight: number;
-    noWeight: number;
     yesPercentage: number;
     userVote?: number;
 };
@@ -55,14 +54,11 @@ export async function fetchActiveWithdrawalRequests(
                 });
 
                 const yesWeight = Number(req[2]);
-                const noWeight = Number(req[3]);
-                const total = yesWeight + noWeight;
-                const yesPercentage = total > 0 ? (yesWeight / total) * 100 : 0;
+                const yesPercentage = w.amount > 0 ? (yesWeight / w.amount) * 100 : 0;
 
                 return {
                     ...w,
                     yesWeight,
-                    noWeight,
                     yesPercentage,
                 };
             } catch (err) {
@@ -73,7 +69,6 @@ export async function fetchActiveWithdrawalRequests(
                 return {
                     ...w,
                     yesWeight: 0,
-                    noWeight: 0,
                     yesPercentage: 0,
                 };
             }

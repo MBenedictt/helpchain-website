@@ -44,6 +44,9 @@ import { Skeleton } from '../components/ui/skeleton';
 import Image from 'next/image';
 import { DonationDetailButton } from '../components/DonationDetailButton';
 import WithdrawButton from '../components/withdrawButton';
+import { fetchActiveWithdrawalRequests, WithdrawalWithVotes } from '@/lib/withdrawals';
+import FinalizedButton from '../components/FinalizedButton';
+import { formatDistanceToNowStrict, isAfter } from 'date-fns';
 
 type Campaign = {
     address: string;
@@ -66,20 +69,36 @@ type Contribution = {
     totalContribution: number;
 };
 
+export type CampaignWithWithdrawals = Campaign & {
+    activeWithdrawals: WithdrawalWithVotes[];
+};
+
 function shortenAddress(address: string) {
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
 
 export default function Dashboard() {
     const { address, isConnected } = useAccount();
-    const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+    const [campaigns, setCampaigns] = useState<CampaignWithWithdrawals[]>([]);
     const [loading, setLoading] = useState(true);
     const [donatedCampaigns, setDonatedCampaigns] = useState<Contribution[]>([]);
 
     async function loadUserCampaigns() {
         if (!address) return;
         setLoading(true);
-        const data = await fetchUserCampaigns(address as Address);
+        const campaigns = await fetchUserCampaigns(address);
+
+        const data = await Promise.all(
+            campaigns.map(async (c) => {
+                const activeWithdrawals = await fetchActiveWithdrawalRequests(c.address.toLowerCase());
+                return {
+                    ...c,
+                    activeWithdrawals,
+                };
+            })
+        );
+        console.log("Fetched user campaigns:", data);
+
         setCampaigns(data);
         setLoading(false);
     }
@@ -230,14 +249,56 @@ export default function Dashboard() {
 
                                             <div className="mt-4 flex justify-start gap-2">
                                                 {c.state === 0 && (
-                                                    <WithdrawButton campaignAddress={c.address as Address} />
+                                                    c.activeWithdrawals.length > 0 ? (
+                                                        <div className='w-full bg-gray-100 p-5 rounded'>
+                                                            <h3 className="text-gray-500 semibold text-sm">
+                                                                You have an active withdrawal request for this campaign.
+                                                            </h3>
+                                                            <h2 className='font-bold text-3xl mt-2'>${c.activeWithdrawals[0].amount}</h2>
+                                                            <p className="text-[12px] text-gray-500 mt-2">
+                                                                Backers have covered{" "}
+                                                                <span className="font-semibold">
+                                                                    {c.activeWithdrawals[0].yesPercentage >= 1
+                                                                        ? `100%`
+                                                                        : `${c.activeWithdrawals[0].yesPercentage.toFixed(2)}%`}
+                                                                </span>{" "}
+                                                                of the requested amount approved.
+                                                            </p>
+
+                                                            {(() => {
+                                                                const deadline = new Date(c.activeWithdrawals[0].voting_deadline);
+                                                                const now = new Date();
+
+                                                                if (isAfter(now, deadline)) {
+                                                                    return (
+                                                                        <div className='mt-3 flex items-center justify-end'>
+                                                                            <FinalizedButton
+                                                                                campaignAddress={c.address as Address}
+                                                                                withdrawId={BigInt(c.activeWithdrawals[0].contract_withdraw_id)}
+                                                                                onSuccess={loadUserCampaigns}
+                                                                            />
+                                                                        </div>
+                                                                    );
+                                                                } else {
+                                                                    return (
+                                                                        <div className='mt-3 flex items-center justify-end'>
+                                                                            <p className="text-xs text-gray-500 mt-3">
+                                                                                You can finalize it in{" "}
+                                                                                <span className="font-semibold">
+                                                                                    {formatDistanceToNowStrict(deadline, { addSuffix: false })}
+                                                                                </span>
+                                                                            </p>
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                            })()}
+                                                        </div>
+                                                    ) : (
+                                                        <WithdrawButton campaignAddress={c.address as Address} />
+                                                    )
                                                 )}
 
-                                                {c.state === 0 && (
-                                                    <AddTiersButton campaignAddress={c.address as Address} />
-                                                )}
-
-                                                {c.state === 0 && (
+                                                {c.state === 0 && c.activeWithdrawals.length === 0 && (
                                                     <AlertDialog>
                                                         <Tooltip>
                                                             <TooltipTrigger asChild>
@@ -258,7 +319,7 @@ export default function Dashboard() {
                                                             <AlertDialogHeader>
                                                                 <AlertDialogTitle>End Campaign?</AlertDialogTitle>
                                                                 <AlertDialogDescription>
-                                                                    <strong className='text-black font-semibold'>This will finalize the campaign permanently.</strong>
+                                                                    <strong className="text-black font-semibold">This will finalize the campaign permanently.</strong>
                                                                     <br />
                                                                     - If no withdrawals happened, it will be marked <strong>Failed</strong>.
                                                                     <br />
@@ -266,7 +327,7 @@ export default function Dashboard() {
                                                                 </AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
-                                                                <AlertDialogCancel className='cursor-pointer'>Cancel</AlertDialogCancel>
+                                                                <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
                                                                 <AlertDialogAction
                                                                     className="cursor-pointer bg-lime-300 hover:bg-lime-400 text-black"
                                                                     onClick={() => handleEndCampaign(c.address as Address)}

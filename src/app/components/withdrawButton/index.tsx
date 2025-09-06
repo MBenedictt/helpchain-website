@@ -118,7 +118,6 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
                     campaignAddress,
                     contractWithdrawId: newWithdrawId,
                     amountWei: String(values.amount),
-                    txHash,
                     votingDurationSec: Number(values.votingDuration),
                     proposalUrl,
                 }),

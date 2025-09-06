@@ -1,9 +1,28 @@
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { createConfig, http } from 'wagmi';
 import { sepolia } from 'wagmi/chains';
+import { connectorsForWallets } from '@rainbow-me/rainbowkit';
+import {
+    metaMaskWallet,
+} from '@rainbow-me/rainbowkit/wallets';
 
-export const config = getDefaultConfig({
-    appName: 'HelpChain DApp',
-    projectId: 'YOUR_PROJECT_ID',
+const connectors = connectorsForWallets(
+    [
+        {
+            groupName: 'Available Wallet',
+            wallets: [metaMaskWallet]
+        },
+    ],
+    {
+        appName: 'HelpChain DApp',
+        projectId: 'YOUR_PROJECT_ID',
+    }
+);
+
+export const config = createConfig({
     chains: [sepolia],
+    connectors,
+    transports: {
+        [sepolia.id]: http(),
+    },
     ssr: true,
 });

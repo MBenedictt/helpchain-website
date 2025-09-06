@@ -8,7 +8,7 @@ import { Address } from 'viem';
 import Navbar from '../components/Navbar';
 import { Separator } from '../components/ui/separator';
 import CreateCampaignButton from '../components/CreateCampaignButton';
-import { Ban, ExternalLink, Power } from 'lucide-react';
+import { Ban, ExternalLink } from 'lucide-react';
 import { endCampaign } from '@/lib/end-campaign';
 import {
     Tooltip,
@@ -80,32 +80,41 @@ function shortenAddress(address: string) {
 export default function Dashboard() {
     const { address, isConnected } = useAccount();
     const [campaigns, setCampaigns] = useState<CampaignWithWithdrawals[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loadingUserCampaigns, setLoadingUserCampaigns] = useState(true);
+    const [loadingDonatedCampaigns, setLoadingDonatedCampaigns] = useState(true);
     const [donatedCampaigns, setDonatedCampaigns] = useState<Contribution[]>([]);
 
     async function loadUserCampaigns() {
         if (!address) return;
-        setLoading(true);
-        const campaigns = await fetchUserCampaigns(address);
+        setLoadingUserCampaigns(true);
+        try {
+            const campaigns = await fetchUserCampaigns(address);
 
-        const data = await Promise.all(
-            campaigns.map(async (c) => {
-                const activeWithdrawals = await fetchActiveWithdrawalRequests(c.address.toLowerCase());
-                return {
-                    ...c,
-                    activeWithdrawals,
-                };
-            })
-        );
-        console.log("Fetched user campaigns:", data);
+            const data = await Promise.all(
+                campaigns.map(async (c) => {
+                    const activeWithdrawals = await fetchActiveWithdrawalRequests(c.address.toLowerCase());
+                    return {
+                        ...c,
+                        activeWithdrawals,
+                    };
+                })
+            );
 
-        setCampaigns(data);
-        setLoading(false);
+            setCampaigns(data);
+        } catch (err) {
+            console.error("Error loading user campaigns:", err);
+            toast.error("Error loading user campaigns. Try again later.", {
+                closeButton: true,
+                position: "top-right",
+            });
+        } finally {
+            setLoadingUserCampaigns(false);
+        }
     }
 
     async function loadDonatedCampaigns() {
         if (!address) return;
-        setLoading(true);
+        setLoadingDonatedCampaigns(true);
         try {
             const campaigns = await fetchDonatedCampaigns(address as Address);
             console.log("Fetched donated campaigns:", campaigns);
@@ -117,7 +126,7 @@ export default function Dashboard() {
                 position: "top-right",
             });
         } finally {
-            setLoading(false);
+            setLoadingDonatedCampaigns(false);
         }
     }
 
@@ -185,7 +194,7 @@ export default function Dashboard() {
 
                         {/* --- CAMPAIGNS TAB --- */}
                         <TabsContent value="campaigns">
-                            {loading ? (
+                            {loadingUserCampaigns ? (
                                 <div className="flex flex-col gap-5">
                                     {[...Array(3)].map((_, i) => (
                                         <Skeleton className="w-full h-[250px] rounded-lg" key={i} />
@@ -250,20 +259,22 @@ export default function Dashboard() {
                                             <div className="mt-4 flex justify-start gap-2">
                                                 {c.state === 0 && (
                                                     c.activeWithdrawals.length > 0 ? (
-                                                        <div className='w-full bg-gray-100 p-5 rounded'>
-                                                            <h3 className="text-gray-500 semibold text-sm">
-                                                                You have an active withdrawal request for this campaign.
-                                                            </h3>
-                                                            <h2 className='font-bold text-3xl mt-2'>${c.activeWithdrawals[0].amount}</h2>
-                                                            <p className="text-[12px] text-gray-500 mt-2">
-                                                                Backers have covered{" "}
-                                                                <span className="font-semibold">
-                                                                    {c.activeWithdrawals[0].yesPercentage >= 1
-                                                                        ? `100%`
-                                                                        : `${c.activeWithdrawals[0].yesPercentage.toFixed(2)}%`}
-                                                                </span>{" "}
-                                                                of the requested amount approved.
-                                                            </p>
+                                                        <div className='w-full flex justify-between items-center max-sm:flex-col bg-gray-100 p-5 rounded'>
+                                                            <div>
+                                                                <h3 className="text-gray-700 semibold text-sm">
+                                                                    You have an active withdrawal request for this campaign.
+                                                                </h3>
+                                                                <h2 className='font-bold text-3xl mt-1'>${c.activeWithdrawals[0].amount}</h2>
+                                                                <p className="text-[12px] text-gray-500 mt-2">
+                                                                    Backers have covered{" "}
+                                                                    <span className="font-semibold">
+                                                                        {c.activeWithdrawals[0].yesPercentage >= 1
+                                                                            ? `100%`
+                                                                            : `${c.activeWithdrawals[0].yesPercentage.toFixed(2)}%`}
+                                                                    </span>{" "}
+                                                                    of the requested amount approved.
+                                                                </p>
+                                                            </div>
 
                                                             {(() => {
                                                                 const deadline = new Date(c.activeWithdrawals[0].voting_deadline);
@@ -271,17 +282,20 @@ export default function Dashboard() {
 
                                                                 if (isAfter(now, deadline)) {
                                                                     return (
-                                                                        <div className='mt-3 flex items-center justify-end'>
+                                                                        <div className='max-md:mt-5 flex max-md:w-full items-center'>
                                                                             <FinalizedButton
                                                                                 campaignAddress={c.address as Address}
                                                                                 withdrawId={BigInt(c.activeWithdrawals[0].contract_withdraw_id)}
                                                                                 onSuccess={loadUserCampaigns}
+                                                                                amount={c.activeWithdrawals[0].amount}
+                                                                                yesWeight={c.activeWithdrawals[0].yesWeight}
+                                                                                dbId={c.activeWithdrawals[0].id}
                                                                             />
                                                                         </div>
                                                                     );
                                                                 } else {
                                                                     return (
-                                                                        <div className='mt-3 flex items-center justify-end'>
+                                                                        <div className='max-md:mt-5 flex max-md:w-full items-center'>
                                                                             <p className="text-xs text-gray-500 mt-3">
                                                                                 You can finalize it in{" "}
                                                                                 <span className="font-semibold">
@@ -296,6 +310,10 @@ export default function Dashboard() {
                                                     ) : (
                                                         <WithdrawButton campaignAddress={c.address as Address} />
                                                     )
+                                                )}
+
+                                                {c.state === 0 && c.activeWithdrawals.length === 0 && (
+                                                    <AddTiersButton campaignAddress={c.address as Address} />
                                                 )}
 
                                                 {c.state === 0 && c.activeWithdrawals.length === 0 && (
@@ -348,7 +366,7 @@ export default function Dashboard() {
                         {/* --- DONATIONS TAB --- */}
                         <TabsContent value="donations">
                             <div className="gap-5">
-                                {loading ? (
+                                {loadingDonatedCampaigns ? (
                                     <div className="flex flex-col gap-5">
                                         {[...Array(3)].map((_, i) => (
                                             <Skeleton className="w-full h-[200px] rounded-lg" key={i} />

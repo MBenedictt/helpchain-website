@@ -257,60 +257,76 @@ export default function Dashboard() {
                                             </p>
 
                                             <div className="mt-4 flex justify-start gap-2">
-                                                {c.state === 0 && (
-                                                    c.activeWithdrawals.length > 0 ? (
-                                                        <div className='w-full flex justify-between items-center max-sm:flex-col bg-gray-100 p-5 rounded'>
-                                                            <div>
-                                                                <h3 className="text-gray-700 semibold text-sm">
-                                                                    You have an active withdrawal request for this campaign.
-                                                                </h3>
-                                                                <h2 className='font-bold text-3xl mt-1'>${c.activeWithdrawals[0].amount}</h2>
-                                                                <p className="text-[12px] text-gray-500 mt-2">
-                                                                    Backers have covered{" "}
-                                                                    <span className="font-semibold">
-                                                                        {c.activeWithdrawals[0].yesPercentage >= 1
-                                                                            ? `100%`
-                                                                            : `${c.activeWithdrawals[0].yesPercentage.toFixed(2)}%`}
-                                                                    </span>{" "}
-                                                                    of the requested amount approved.
-                                                                </p>
-                                                            </div>
+                                                {c.state === 0 && (() => {
+                                                    const active = c.activeWithdrawals[0];
 
-                                                            {(() => {
-                                                                const deadline = new Date(c.activeWithdrawals[0].voting_deadline);
-                                                                const now = new Date();
+                                                    if (active) {
+                                                        if (!active.finalized && active.requires_proof) {
+                                                            return (
+                                                                <div className='w-full flex justify-between items-center max-sm:flex-col bg-white border border-gray-700 p-5 rounded'>
+                                                                    <div>
+                                                                        <h3 className="text-gray-700 semibold text-sm">
+                                                                            You have an active withdrawal request for this campaign.
+                                                                        </h3>
+                                                                        <h2 className='font-bold text-3xl mt-1'>${active.amount}</h2>
+                                                                        <p className="text-[12px] text-gray-500 mt-2">
+                                                                            Backers have covered{" "}
+                                                                            <span className="font-semibold">
+                                                                                {active.yesPercentage >= 1
+                                                                                    ? `100%`
+                                                                                    : `${active.yesPercentage.toFixed(2)}%`}
+                                                                            </span>{" "}
+                                                                            of the requested amount approved.
+                                                                        </p>
+                                                                    </div>
 
-                                                                if (isAfter(now, deadline)) {
-                                                                    return (
-                                                                        <div className='max-md:mt-5 flex max-md:w-full items-center'>
-                                                                            <FinalizedButton
-                                                                                campaignAddress={c.address as Address}
-                                                                                withdrawId={BigInt(c.activeWithdrawals[0].contract_withdraw_id)}
-                                                                                onSuccess={loadUserCampaigns}
-                                                                                amount={c.activeWithdrawals[0].amount}
-                                                                                yesWeight={c.activeWithdrawals[0].yesWeight}
-                                                                                dbId={c.activeWithdrawals[0].id}
-                                                                            />
-                                                                        </div>
-                                                                    );
-                                                                } else {
-                                                                    return (
-                                                                        <div className='max-md:mt-5 flex max-md:w-full items-center'>
-                                                                            <p className="text-xs text-gray-500 mt-3">
-                                                                                You can finalize it in{" "}
-                                                                                <span className="font-semibold">
-                                                                                    {formatDistanceToNowStrict(deadline, { addSuffix: false })}
-                                                                                </span>
-                                                                            </p>
-                                                                        </div>
-                                                                    );
-                                                                }
-                                                            })()}
-                                                        </div>
-                                                    ) : (
-                                                        <WithdrawButton campaignAddress={c.address as Address} />
-                                                    )
-                                                )}
+                                                                    {(() => {
+                                                                        const deadline = new Date(active.voting_deadline);
+                                                                        const now = new Date();
+
+                                                                        if (isAfter(now, deadline)) {
+                                                                            return (
+                                                                                <div className='max-md:mt-5 flex max-md:w-full items-center'>
+                                                                                    <FinalizedButton
+                                                                                        campaignAddress={c.address as Address}
+                                                                                        withdrawId={BigInt(active.contract_withdraw_id)}
+                                                                                        onSuccess={loadUserCampaigns}
+                                                                                        amount={active.amount}
+                                                                                        yesWeight={active.yesWeight}
+                                                                                        dbId={active.id}
+                                                                                    />
+                                                                                </div>
+                                                                            );
+                                                                        } else {
+                                                                            return (
+                                                                                <div className='max-md:mt-5 flex max-md:w-full items-center'>
+                                                                                    <p className="text-xs text-gray-500 mt-3">
+                                                                                        You can finalize it in{" "}
+                                                                                        <span className="font-semibold">
+                                                                                            {formatDistanceToNowStrict(deadline, { addSuffix: false })}
+                                                                                        </span>
+                                                                                    </p>
+                                                                                </div>
+                                                                            );
+                                                                        }
+                                                                    })()}
+                                                                </div>
+                                                            );
+                                                        }
+
+                                                        if (active.finalized && active.requires_proof) {
+                                                            return (
+                                                                <div className='w-full border border-gray-700 rounded flex justify-between items-center gap-2 p-5'>
+                                                                    <p className='font-semibold text-black text-sm'>
+                                                                        Please submit proof of the previous withdrawal usages before requesting a new withdrawal.
+                                                                    </p>
+                                                                </div>
+                                                            );
+                                                        }
+                                                    }
+
+                                                    return <WithdrawButton campaignAddress={c.address as Address} />;
+                                                })()}
 
                                                 {c.state === 0 && c.activeWithdrawals.length === 0 && (
                                                     <AddTiersButton campaignAddress={c.address as Address} />

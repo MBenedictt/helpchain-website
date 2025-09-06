@@ -12,7 +12,7 @@ export type Withdrawal = {
     proof_url: string | null;
     finalized: boolean;
     finalized_at: string | null;
-    success: boolean | null;
+    requires_proof: boolean | null;
     tx_hash: string | null;
     created_at: string;
     voting_deadline: string;
@@ -32,7 +32,7 @@ export async function fetchActiveWithdrawalRequests(
         .from("withdrawals")
         .select("*")
         .eq("campaign_address", campaignAddress)
-        .eq("finalized", false)
+        .or("finalized.eq.false,requires_proof.eq.true")
         .order("created_at", { ascending: false });
 
     if (error) {

@@ -97,6 +97,38 @@ export default function CampaignPage() {
         },
     });
 
+    const loadCampaign = useCallback(async (campaignAddress: string) => {
+        try {
+            const data = await fetchCampaignByAddress(campaignAddress);
+            if (!data) {
+                notFound();
+                return;
+            }
+            setCampaign(data);
+        } catch (err) {
+            console.error("Error loading campaign:", err);
+            toast.error("Failed to fetch campaign data.", {
+                closeButton: true,
+                position: "top-right",
+            });
+        }
+    }, []);
+
+    // donations loader
+    const loadDonations = useCallback(async (campaignAddress: string) => {
+        try {
+            const logs = await fetchDonationLogs(campaignAddress as `0x${string}`);
+            setDonations(logs);
+        } catch (err) {
+            console.error("Error loading donations:", err);
+            toast.error("Failed to fetch donations, try again later.", {
+                closeButton: true,
+                position: "top-right",
+            });
+        }
+    }, []);
+
+    // main loader: campaign + withdrawals
     const load = useCallback(async () => {
         try {
             const data = await fetchCampaignByAddress(slug as string);
@@ -106,16 +138,11 @@ export default function CampaignPage() {
             }
             setCampaign(data);
 
-            // fetch donations
-            const logs = await fetchDonationLogs(data.address as `0x${string}`);
-            setDonations(logs);
-
-            // fetch active withdrawals
+            // load withdrawals
             const activeWithdrawals = await fetchActiveWithdrawalRequests(
                 (data.address as `0x${string}`).toLowerCase()
             );
 
-            // if connected user is a backer, fetch their vote for each withdrawal
             let withdrawalsWithVotes = activeWithdrawals;
             if (connectedAddress) {
                 const backer = await checkIsBacker(
@@ -132,15 +159,18 @@ export default function CampaignPage() {
                                 BigInt(w.contract_withdraw_id),
                                 connectedAddress as Address
                             );
-                            return { ...w, userVote: vote }; // attach vote info
+                            return { ...w, userVote: vote };
                         })
                     );
                 }
             }
 
             setWithdrawalsReq(withdrawalsWithVotes);
+
+            // 👇 only call donations once at page load here
+            await loadDonations(data.address as `0x${string}`);
         } catch (err) {
-            console.error("Error loading campaign, donations, or withdrawals:", err);
+            console.error("Error loading campaign or withdrawals:", err);
             toast.error("Failed to fetch campaign data, try again later.", {
                 closeButton: true,
                 position: "top-right",
@@ -148,7 +178,7 @@ export default function CampaignPage() {
         } finally {
             setLoading(false);
         }
-    }, [slug, connectedAddress]);
+    }, [slug, connectedAddress, loadDonations]);
 
     useEffect(() => {
         load();
@@ -202,7 +232,8 @@ export default function CampaignPage() {
                 }),
             });
 
-            await load();
+            await loadCampaign(campaign!.address);
+            await loadDonations(campaign!.address as `0x${string}`);
 
             toast.dismiss();
             toast.success("Donation sent!", {

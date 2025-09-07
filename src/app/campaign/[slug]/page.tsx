@@ -282,7 +282,7 @@ export default function CampaignPage() {
                 <div className="flex gap-5">
                     <div className="w-8/12 max-[991px]:w-full">
                         <Image
-                            src="/assets/help.jpg"
+                            src="/assets/campaign-img.jpg"
                             alt="Campaign thumbnail"
                             width={1920}
                             height={1080}

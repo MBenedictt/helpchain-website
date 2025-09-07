@@ -8,7 +8,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Address } from "viem"
 import { createWithdrawRequest } from "@/lib/withdraw"
 import { crowdfundingAbi, publicClient } from "@/lib/contracts"
-import { createClient } from "@supabase/supabase-js"
 import { toast } from "sonner"
 
 import {
@@ -33,11 +32,7 @@ import {
     FormMessage,
 } from "../ui/form"
 import { BanknoteArrowDown } from "lucide-react"
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { supabaseClient } from "@/lib/supabase/supabaseClient"
 
 const withdrawSchema = z.object({
     amount: z
@@ -98,13 +93,13 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
             const fileExt = file.name.split(".").pop();
             const filePath = `proposals/${campaignAddress}-${Date.now()}.${fileExt}`;
 
-            const { error: uploadError } = await supabase.storage
+            const { error: uploadError } = await supabaseClient.storage
                 .from("withdrawal-files")
                 .upload(filePath, file);
 
             if (uploadError) throw uploadError;
 
-            const { data: urlData } = supabase.storage
+            const { data: urlData } = supabaseClient.storage
                 .from("withdrawal-files")
                 .getPublicUrl(filePath);
 

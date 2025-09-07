@@ -30,7 +30,7 @@ export default function CampaignCard({
             <Card className="h-[420px] max-md:h-fit overflow-hidden hover:shadow-md hover:scale-[1.01] transition-all cursor-pointer px-4 pt-4">
                 <div className="relative h-fit">
                     <Image
-                        src="/assets/help.jpg"
+                        src="/assets/campaign-img.jpg"
                         alt="Campaign thumbnail"
                         width={300}
                         height={250}

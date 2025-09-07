@@ -47,6 +47,7 @@ import WithdrawButton from '../components/withdrawButton';
 import { fetchActiveWithdrawalRequests, WithdrawalWithVotes } from '@/lib/withdrawals';
 import FinalizedButton from '../components/FinalizedButton';
 import { formatDistanceToNowStrict, isAfter } from 'date-fns';
+import SubmitProofButton from '../components/SubmitProofButton';
 
 type Campaign = {
     address: string;
@@ -320,6 +321,12 @@ export default function Dashboard() {
                                                                     <p className='font-semibold text-black text-sm'>
                                                                         Please submit proof of the previous withdrawal usages before requesting a new withdrawal.
                                                                     </p>
+                                                                    <SubmitProofButton
+                                                                        campaignAddress={c.address as Address}
+                                                                        withdrawId={BigInt(c.activeWithdrawals[0].contract_withdraw_id)}
+                                                                        dbId={c.activeWithdrawals[0].id}
+                                                                        onSuccess={loadUserCampaigns}
+                                                                    />
                                                                 </div>
                                                             );
                                                         }

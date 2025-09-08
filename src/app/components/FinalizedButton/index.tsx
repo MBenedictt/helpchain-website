@@ -49,11 +49,14 @@ export default function FinalizedButton({
             toast.loading("Waiting for confirmation...");
             await publicClient.waitForTransactionReceipt({ hash: txHash });
 
+            const successValue = yesWeight < amount ? false : null;
+
             // update Supabase
             const { error } = await supabaseClient
                 .from("withdrawals")
                 .update({
                     finalized: true,
+                    success: successValue,
                     finalized_at: new Date().toISOString(),
                     tx_hash: txHash,
                 })
@@ -64,7 +67,12 @@ export default function FinalizedButton({
             }
 
             toast.dismiss();
-            toast.success("Withdrawal finalized!");
+            toast.success(
+                yesWeight < amount
+                    ? "Withdrawal failed, campaign marked FAILED."
+                    : "Withdrawal finalized successfully!"
+            );
+
             if (onSuccess) onSuccess();
         } catch (err) {
             console.error("Finalize error:", err);
@@ -82,7 +90,7 @@ export default function FinalizedButton({
                     <AlertDialogTrigger asChild>
                         <button
                             disabled={loading}
-                            className="flex items-center gap-2 cursor-pointer border border-gray-300 font-semibold text-black bg-white hover:bg-gray-200 hover:scale-105 py-2 px-4 max-sm:px-3 rounded"
+                            className="flex items-center gap-2 cursor-pointer border border-gray-700 font-semibold text-black bg-white hover:bg-gray-200 hover:scale-105 py-2 px-4 max-sm:px-3 rounded"
                         >
                             <Gavel size={20} />
                             <span className="text-sm">Finalize</span>
@@ -113,14 +121,11 @@ export default function FinalizedButton({
                         ) : (
                             <>
                                 <strong className="text-gray-700 font-semibold">
-                                    Backers didn’t fully cover the withdrawal request.
+                                    Backers didn’t fully cover the withdrawal request. Only <strong>${coveredAmount}</strong> is covered.
                                 </strong>
                                 <br />
-                                Only the covered amount of{" "}
-                                <strong className="text-black font-semibold text-3xl">
-                                    ${coveredAmount}
-                                </strong>{" "}
-                                will be transferred to your wallet.
+                                <br />
+                                <strong className="text-red-600">Finalizing this request will FAIL the campaign.</strong>
                             </>
                         )}
                     </AlertDialogDescription>

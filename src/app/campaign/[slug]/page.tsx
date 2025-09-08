@@ -33,6 +33,8 @@ import { checkIsBacker } from "@/lib/check-backer";
 import { getUserVote } from "@/lib/get-vote";
 import { voteWithdrawRequest } from "@/lib/vote";
 import { differenceInDays } from "date-fns";
+import { fetchWithdrawalLogs, WithdrawalLog } from "@/lib/withdraw-logs";
+import WithdrawHistory from "@/app/components/WithdrawalLogs";
 
 function formatVotingDeadline(createdAt: string, deadline: string) {
     const created = new Date(createdAt);
@@ -84,6 +86,7 @@ export default function CampaignPage() {
     const [loading, setLoading] = useState(true);
     const [sendingFund, setSendingFund] = useState(false);
     const [donations, setDonations] = useState<DonationLog[]>([]);
+    const [withdrawals, setWithdrawals] = useState<WithdrawalLog[]>([]);
     const [withdrawalsReq, setWithdrawalsReq] = useState<WithdrawalWithVotes[]>([]);
     const { address: connectedAddress } = useAccount();
     const [isBackerUser, setIsBackerUser] = useState(false);
@@ -122,6 +125,20 @@ export default function CampaignPage() {
         } catch (err) {
             console.error("Error loading donations:", err);
             toast.error("Failed to fetch donations, try again later.", {
+                closeButton: true,
+                position: "top-right",
+            });
+        }
+    }, []);
+
+    // withdrawals history loader
+    const loadWithdrawals = useCallback(async (campaignAddress: string) => {
+        try {
+            const logs = await fetchWithdrawalLogs(campaignAddress as `0x${string}`);
+            setWithdrawals(logs);
+        } catch (err) {
+            console.error("Error loading withdrawals:", err);
+            toast.error("Failed to fetch withdrawals, try again later.", {
                 closeButton: true,
                 position: "top-right",
             });
@@ -167,8 +184,9 @@ export default function CampaignPage() {
 
             setWithdrawalsReq(withdrawalsWithVotes);
 
-            // 👇 only call donations once at page load here
             await loadDonations(data.address as `0x${string}`);
+
+            await loadWithdrawals(data.address as `0x${string}`);
         } catch (err) {
             console.error("Error loading campaign or withdrawals:", err);
             toast.error("Failed to fetch campaign data, try again later.", {
@@ -178,7 +196,7 @@ export default function CampaignPage() {
         } finally {
             setLoading(false);
         }
-    }, [slug, connectedAddress, loadDonations]);
+    }, [slug, connectedAddress, loadDonations, loadWithdrawals]);
 
     useEffect(() => {
         load();
@@ -529,6 +547,19 @@ export default function CampaignPage() {
                         </div>
                         <h1 className="mb-2 font-bold">Description</h1>
                         <p className="text-gray-500 mb-2">{campaign!.description}</p>
+                        <div className="mt-4 pt-4 border-t border-gray-300">
+                            <h1 className="mb-4 font-bold">Withdrawal Milestones</h1>
+                            <WithdrawHistory withdrawals={withdrawals} />
+                            <div className="flex items-center mt-4">
+                                <Link
+                                    href={`https://sepolia.etherscan.io/address/${campaign!.address}`}
+                                    target="_blank"
+                                    className="text-gray-700 hover:text-lime-500 underline"
+                                >
+                                    View More on Etherscan
+                                </Link>
+                            </div>
+                        </div>
                         <div className="mt-4 pt-4 border-t border-gray-300">
                             <h1 className="mb-4 font-bold">Donation History</h1>
                             <DonationLogs donations={donations} />

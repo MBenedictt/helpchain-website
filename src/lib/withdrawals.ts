@@ -32,7 +32,7 @@ export async function fetchActiveWithdrawalRequests(
         .from("withdrawals")
         .select("*")
         .eq("campaign_address", campaignAddress)
-        .eq("success", false)
+        .is("success", null)
         .order("created_at", { ascending: false });
 
     if (error) {

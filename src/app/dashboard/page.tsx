@@ -84,8 +84,9 @@ export default function Dashboard() {
     const [loadingUserCampaigns, setLoadingUserCampaigns] = useState(true);
     const [loadingDonatedCampaigns, setLoadingDonatedCampaigns] = useState(true);
     const [donatedCampaigns, setDonatedCampaigns] = useState<Contribution[]>([]);
+    const [activeWithdrawalCount, setActiveWithdrawalCount] = useState(0);
 
-    async function loadUserCampaigns() {
+    const loadUserCampaigns = async () => {
         if (!address) return;
         setLoadingUserCampaigns(true);
         try {
@@ -93,7 +94,9 @@ export default function Dashboard() {
 
             const data = await Promise.all(
                 campaigns.map(async (c) => {
-                    const activeWithdrawals = await fetchActiveWithdrawalRequests(c.address.toLowerCase());
+                    const activeWithdrawals = await fetchActiveWithdrawalRequests(
+                        c.address.toLowerCase()
+                    );
                     return {
                         ...c,
                         activeWithdrawals,
@@ -102,6 +105,15 @@ export default function Dashboard() {
             );
 
             setCampaigns(data);
+
+            // Count how many campaigns have active withdrawals
+            const activeCount = data.filter(
+                (c) => c.activeWithdrawals.length > 0
+            ).length;
+
+            console.log("Campaigns with active withdrawals:", activeCount);
+            // you can now store it in a state for showing a badge/notification
+            setActiveWithdrawalCount(activeCount);
         } catch (err) {
             console.error("Error loading user campaigns:", err);
             toast.error("Error loading user campaigns. Try again later.", {
@@ -111,9 +123,9 @@ export default function Dashboard() {
         } finally {
             setLoadingUserCampaigns(false);
         }
-    }
+    };
 
-    async function loadDonatedCampaigns() {
+    const loadDonatedCampaigns = async () => {
         if (!address) return;
         setLoadingDonatedCampaigns(true);
         try {
@@ -189,7 +201,13 @@ export default function Dashboard() {
                 ) : (
                     <Tabs defaultValue="campaigns" className="w-full">
                         <TabsList className="mb-6">
-                            <TabsTrigger value="campaigns" className='cursor-pointer'>My Campaigns</TabsTrigger>
+                            <TabsTrigger value="campaigns" className='cursor-pointer'>
+                                My Campaigns
+                                {activeWithdrawalCount > 0 && (
+                                    <span className="bg-red-100 text-red-800 text-[10px] px-2 py-0.5 rounded-full">
+                                        {activeWithdrawalCount}
+                                    </span>
+                                )}</TabsTrigger>
                             <TabsTrigger value="donations" className='cursor-pointer'>My Donations</TabsTrigger>
                         </TabsList>
 

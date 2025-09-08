@@ -124,7 +124,7 @@ export default function SubmitProofButton({
                 <TooltipTrigger asChild>
                     <AlertDialogTrigger asChild>
                         <button
-                            className="flex items-center gap-2 cursor-pointer border border-gray-300 font-semibold text-black hover:bg-gray-100 hover:scale-105 py-2 px-4 rounded transition"
+                            className="flex items-center gap-2 cursor-pointer border border-gray-700 font-semibold text-black hover:bg-gray-100 hover:scale-105 py-2 px-4 rounded transition"
                             disabled={loading}
                             onClick={() => setOpen(true)}
                         >

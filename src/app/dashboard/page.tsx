@@ -42,7 +42,6 @@ import { toast } from 'sonner';
 import { Progress } from '../components/ui/progress';
 import { Skeleton } from '../components/ui/skeleton';
 import Image from 'next/image';
-import { DonationDetailButton } from '../components/DonationDetailButton';
 import WithdrawButton from '../components/withdrawButton';
 import { fetchActiveWithdrawalRequests, WithdrawalWithVotes } from '@/lib/withdrawals';
 import FinalizedButton from '../components/FinalizedButton';
@@ -435,7 +434,7 @@ export default function Dashboard() {
                                                 </div>
                                                 <div className='w-full h-full'>
                                                     <div>
-                                                        <p className='font-[400] text-gray-700'>You have donated a total of</p>
+                                                        <p className='font-[400] text-gray-700'>You have contributed a total of</p>
                                                         <h2 className="text-3xl font-bold mt-1 mb-2">
                                                             ${c.totalContribution}
                                                         </h2>
@@ -456,8 +455,6 @@ export default function Dashboard() {
                                                     </p>
 
                                                     <div className="mt-4 flex justify-start gap-2">
-                                                        <DonationDetailButton campaignAddress={c.campaign} backer={address as Address} />
-
                                                         <RefundButton campaignAddress={c.campaign} />
                                                     </div>
                                                 </div>

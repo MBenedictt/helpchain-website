@@ -100,23 +100,6 @@ export default function CampaignPage() {
         },
     });
 
-    const loadCampaign = useCallback(async (campaignAddress: string) => {
-        try {
-            const data = await fetchCampaignByAddress(campaignAddress);
-            if (!data) {
-                notFound();
-                return;
-            }
-            setCampaign(data);
-        } catch (err) {
-            console.error("Error loading campaign:", err);
-            toast.error("Failed to fetch campaign data.", {
-                closeButton: true,
-                position: "top-right",
-            });
-        }
-    }, []);
-
     // donations loader
     const loadDonations = useCallback(async (campaignAddress: string) => {
         try {
@@ -250,9 +233,6 @@ export default function CampaignPage() {
                 }),
             });
 
-            await loadCampaign(campaign!.address);
-            await loadDonations(campaign!.address as `0x${string}`);
-
             toast.dismiss();
             toast.success("Donation sent!", {
                 closeButton: true,
@@ -263,6 +243,9 @@ export default function CampaignPage() {
                 tierIndex: null,
                 amount: "",
             });
+
+            // 3. Refresh data
+            await load();
         } catch (err) {
             toast.dismiss();
             console.error("Failed to donate:", err);
@@ -296,14 +279,14 @@ export default function CampaignPage() {
 
             await publicClient.waitForTransactionReceipt({ hash: txHash });
 
-            // 3. Refresh data
-            await load();
-
             toast.dismiss();
             toast.success("Vote submitted!", {
                 closeButton: true,
                 position: "top-right",
             });
+
+            // 3. Refresh data
+            await load();
         } catch (err) {
             toast.dismiss();
             console.error("Vote error:", err);

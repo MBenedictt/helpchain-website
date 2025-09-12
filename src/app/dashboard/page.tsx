@@ -67,6 +67,9 @@ type Contribution = {
     campaign: Address;
     name: string;
     totalContribution: number;
+    usedContribution: number;
+    hasPendingVote: boolean;
+    canRefund: boolean;
 };
 
 export type CampaignWithWithdrawals = Campaign & {
@@ -84,6 +87,7 @@ export default function Dashboard() {
     const [loadingDonatedCampaigns, setLoadingDonatedCampaigns] = useState(true);
     const [donatedCampaigns, setDonatedCampaigns] = useState<Contribution[]>([]);
     const [activeWithdrawalCount, setActiveWithdrawalCount] = useState(0);
+    const [activeRequestCount, setActiveRequestCount] = useState(0);
 
     const loadUserCampaigns = async () => {
         if (!address) return;
@@ -110,7 +114,6 @@ export default function Dashboard() {
                 (c) => c.activeWithdrawals.length > 0
             ).length;
 
-            console.log("Campaigns with active withdrawals:", activeCount);
             // you can now store it in a state for showing a badge/notification
             setActiveWithdrawalCount(activeCount);
         } catch (err) {
@@ -129,8 +132,14 @@ export default function Dashboard() {
         setLoadingDonatedCampaigns(true);
         try {
             const campaigns = await fetchDonatedCampaigns(address as Address);
-            console.log("Fetched donated campaigns:", campaigns);
             setDonatedCampaigns(campaigns);
+
+            const activeCount = campaigns.filter(
+                (c) => c.hasPendingVote === true
+            ).length;
+
+            // you can now store it in a state for showing a badge/notification
+            setActiveRequestCount(activeCount);
         } catch (err) {
             console.error("Error loading contributions:", err);
             toast.error("Error loading contributions. Try again later.", {
@@ -207,7 +216,14 @@ export default function Dashboard() {
                                         {activeWithdrawalCount}
                                     </span>
                                 )}</TabsTrigger>
-                            <TabsTrigger value="donations" className='cursor-pointer'>My Donations</TabsTrigger>
+                            <TabsTrigger value="donations" className='cursor-pointer'>
+                                My Donations
+                                {activeRequestCount > 0 && (
+                                    <span className="bg-red-100 text-red-800 text-[10px] px-2 py-0.5 rounded-full">
+                                        {activeRequestCount}
+                                    </span>
+                                )}
+                            </TabsTrigger>
                         </TabsList>
 
                         {/* --- CAMPAIGNS TAB --- */}
@@ -349,7 +365,7 @@ export default function Dashboard() {
                                                         }
                                                     }
 
-                                                    return <WithdrawButton campaignAddress={c.address as Address} />;
+                                                    return <WithdrawButton campaignAddress={c.address as Address} onSuccess={loadUserCampaigns} />;
                                                 })()}
 
                                                 {c.state === 0 && c.activeWithdrawals.length === 0 && (
@@ -421,44 +437,80 @@ export default function Dashboard() {
                                         return (
                                             <div
                                                 key={i}
-                                                className="p-5 flex items-center gap-5 max-md:flex-col max-md:gap-3"
+                                                className="p-5 flex gap-5 max-md:flex-col max-md:gap-3"
                                             >
                                                 <div className='w-[250px] h-full max-md:w-full max-md:h-[100px] rounded-lg bg-gray-100'>
                                                     <Image
-                                                        src="/assets/help.jpg"
+                                                        src="/assets/campaign-img.jpg"
                                                         alt="Campaign thumbnail"
-                                                        width={300}
-                                                        height={250}
+                                                        width={400}
+                                                        height={350}
                                                         className="object-cover w-[250px] h-full max-md:w-full max-md:h-[100px] rounded-lg"
                                                     />
                                                 </div>
                                                 <div className='w-full h-full'>
-                                                    <div>
-                                                        <p className='font-[400] text-gray-700'>You have contributed a total of</p>
-                                                        <h2 className="text-3xl font-bold mt-1 mb-2">
-                                                            ${c.totalContribution}
-                                                        </h2>
-                                                    </div>
-
-                                                    <p className="text-gray-600 mb-3 text-sm">
-                                                        To{" "}
-                                                        <span className="font-bold text-black">
+                                                    {c.hasPendingVote && (
+                                                        <div className="w-full flex max-[540px]:flex-col items-center max-[540px]:items-end max-[540px]:gap-3 justify-between border border-gray-700 rounded p-3 mb-3">
+                                                            <p className="font-semibold text-black text-sm">
+                                                                The owner is requesting withdrawal and needs your confirmation.
+                                                            </p>
                                                             <Link
-                                                                href={`https://sepolia.etherscan.io/address/${c.campaign}`}
-                                                                target="_blank"
-                                                                className="cursor-pointer hover:underline"
+                                                                href={`/campaign/${c.campaign}`}
+                                                                className="text-sm flex items-center gap-2 cursor-pointer border border-gray-700 font-semibold text-black hover:bg-gray-100 hover:scale-105 py-1 px-2 rounded transition"
                                                             >
-                                                                {shortenAddress(c.campaign)}
+                                                                Confirm
                                                             </Link>
-                                                        </span>
-                                                        {" "}&ldquo;{c.name}&rdquo; Campaign
-                                                    </p>
+                                                        </div>
+                                                    )}
 
-                                                    <div className="mt-4 flex justify-start gap-2">
-                                                        <RefundButton campaignAddress={c.campaign} />
-                                                    </div>
+                                                    {c.canRefund && (
+                                                        <div className="w-full flex max-[540px]:flex-col items-center max-[540px]:items-end max-[540px]:gap-3 justify-between border border-red-700 bg-red-50 rounded p-3 mb-3">
+                                                            <p className="font-semibold text-red-500 text-sm">
+                                                                The campaign has failed or you chose to walk out from this campaign, you could claim the remaining funds.
+                                                            </p>
+                                                        </div>
+                                                    )}
+
+                                                    {c.canRefund ? (
+                                                        <>
+                                                            <div>
+                                                                <p className="font-[400] text-gray-700">The remaining amount you could claim is</p>
+                                                                <h2 className="text-3xl font-bold mt-1 mb-2">
+                                                                    ${c.totalContribution}
+                                                                </h2>
+                                                            </div>
+
+                                                            <div className="mt-4 flex justify-start gap-2">
+                                                                <RefundButton campaignAddress={c.campaign} onSuccess={loadDonatedCampaigns} />
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <div>
+                                                            <div>
+                                                                <p className="font-[400] text-gray-700">You have contributed a total of</p>
+                                                                <h2 className="text-3xl font-bold mt-1 mb-2">
+                                                                    ${c.totalContribution + c.usedContribution}
+                                                                </h2>
+                                                            </div>
+
+                                                            <p className="text-gray-600 mb-3 text-sm">
+                                                                To{" "}
+                                                                <span className="font-bold text-black">
+                                                                    <Link
+                                                                        href={`https://sepolia.etherscan.io/address/${c.campaign}`}
+                                                                        target="_blank"
+                                                                        className="cursor-pointer hover:underline"
+                                                                    >
+                                                                        {shortenAddress(c.campaign)}
+                                                                    </Link>
+                                                                </span>
+                                                                {" "}&ldquo;{c.name}&rdquo; Campaign
+                                                            </p>
+
+                                                            <p className="text-gray-600 text-sm italic">The campaign already used ${c.usedContribution} of ${c.totalContribution + c.usedContribution}</p>
+                                                        </div>
+                                                    )}
                                                 </div>
-
                                             </div>
                                         );
                                     })

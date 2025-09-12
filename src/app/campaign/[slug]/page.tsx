@@ -35,6 +35,7 @@ import { voteWithdrawRequest } from "@/lib/vote";
 import { differenceInDays } from "date-fns";
 import { fetchWithdrawalLogs, WithdrawalLog } from "@/lib/withdraw-logs";
 import WithdrawHistory from "@/app/components/WithdrawalLogs";
+import RefundButton from "@/app/components/refundButton";
 
 function formatVotingDeadline(createdAt: string, deadline: string) {
     const created = new Date(createdAt);
@@ -42,7 +43,7 @@ function formatVotingDeadline(createdAt: string, deadline: string) {
 
     const days = differenceInDays(end, created);
 
-    return `Voting ends in ${days} day${days > 1 ? "s" : ""}`;
+    return `Confirmation ends in ${days} day${days > 1 ? "s" : ""}`;
 }
 
 type Campaign = {
@@ -149,7 +150,7 @@ export default function CampaignPage() {
                     data.address as Address,
                     connectedAddress as Address
                 );
-                setIsBackerUser(backer);
+                setIsBackerUser(backer.isBacker);
 
                 if (backer) {
                     withdrawalsWithVotes = await Promise.all(
@@ -340,7 +341,7 @@ export default function CampaignPage() {
                                     withdrawalsReq.map((w) => (
                                         <div
                                             key={w.id}
-                                            className="w-full p-5 rounded border border-gray-300 bg-lime-50 mt-4 flex justify-between items-center shadow-md shadow-lime-500"
+                                            className="w-full p-5 rounded border border-gray-300 bg-lime-50 mt-4 flex justify-between max-sm:flex-col items-center max-sm:items-start shadow-md shadow-lime-500"
                                         >
                                             <div>
                                                 <h2 className="text-sm font-semibold text-gray-500">
@@ -369,24 +370,24 @@ export default function CampaignPage() {
                                             </div>
 
                                             {w.userVote === 0 && (
-                                                <div className="flex flex-col gap-2 items-center">
-                                                    <div className="flex flex-col gap-2 justify-between items-center">
-                                                        <p className="text-sm text-gray-500">Vote</p>
+                                                <div className="flex flex-col gap-2 items-center max-md:mt-5 max-md:w-full">
+                                                    <div className="flex flex-col gap-2 justify-between items-center max-md:w-full">
+                                                        <p className="text-sm text-gray-700 font-semibold">Confirm</p>
 
                                                         {loadingVote ? (
                                                             <div className="flex gap-2 items-center my-2">
                                                                 <Loader size={16} className="animate-spin text-gray-500" />
                                                             </div>
                                                         ) : (
-                                                            <div className="flex gap-2 items-center">
+                                                            <div className="flex gap-2 items-center max-md:w-full">
                                                                 <button
-                                                                    className="cursor-pointer bg-gray-50 border border-gray-300 hover:bg-green-50 text-gray-500 py-1 px-2 rounded text-sm"
+                                                                    className="cursor-pointer bg-gray-50 border border-gray-300 hover:bg-green-50 text-gray-500 py-1 px-2 rounded text-sm max-md:w-full max-md:flex max-md:items-center max-md:justify-center"
                                                                     onClick={() => handleVote(w.contract_withdraw_id, true)}
                                                                 >
                                                                     <Check size={24} className="text-green-500" />
                                                                 </button>
                                                                 <button
-                                                                    className="cursor-pointer bg-gray-50 border border-gray-300 hover:bg-red-50 text-gray-500 py-1 px-2 rounded text-sm"
+                                                                    className="cursor-pointer bg-gray-50 border border-gray-300 hover:bg-red-50 text-gray-500 py-1 px-2 rounded text-sm max-md:w-full max-md:flex max-md:items-center max-md:justify-center"
                                                                     onClick={() => handleVote(w.contract_withdraw_id, false)}
                                                                 >
                                                                     <X size={24} className="text-red-500" />
@@ -395,25 +396,26 @@ export default function CampaignPage() {
                                                         )}
                                                     </div>
 
-                                                    <p className="text-sm text-gray-500">
+                                                    <p className="text-[12px] italic text-gray-500">
                                                         {formatVotingDeadline(w.created_at, w.voting_deadline)}
                                                     </p>
                                                 </div>
                                             )}
 
                                             {w.userVote === 1 && (
-                                                <div className="flex flex-col gap-2 items-center">
-                                                    <p className="text-sm text-green-600 font-semibold w-3/4 text-center">
+                                                <div className="flex flex-col gap-2 items-center max-sm:my-4 max-sm:w-full max-sm:items-center">
+                                                    <p className="text-sm text-green-600 font-semibold w-3/4 text-center ">
                                                         You Approved This Request
                                                     </p>
                                                 </div>
                                             )}
 
                                             {w.userVote === 2 && (
-                                                <div className="flex flex-col gap-2 items-center">
-                                                    <p className="text-sm text-red-600 font-semibold w-3/4 text-center">
+                                                <div className="flex flex-col gap-2 items-center max-sm:mt-4 max-sm:w-full max-sm:items-end">
+                                                    <p className="text-sm text-red-600 font-semibold w-3/4 max-sm:w-full text-center max-sm:text-right">
                                                         You Rejected This Request
                                                     </p>
+                                                    <RefundButton campaignAddress={campaign!.address as Address} onSuccess={load} />
                                                 </div>
                                             )}
 
@@ -533,15 +535,6 @@ export default function CampaignPage() {
                         <div className="mt-4 pt-4 border-t border-gray-300">
                             <h1 className="mb-4 font-bold">Withdrawal Milestones</h1>
                             <WithdrawHistory withdrawals={withdrawals} />
-                            <div className="flex items-center mt-4">
-                                <Link
-                                    href={`https://sepolia.etherscan.io/address/${campaign!.address}`}
-                                    target="_blank"
-                                    className="text-gray-700 hover:text-lime-500 underline"
-                                >
-                                    View More on Etherscan
-                                </Link>
-                            </div>
                         </div>
                         <div className="mt-4 pt-4 border-t border-gray-300">
                             <h1 className="mb-4 font-bold">Donation History</h1>

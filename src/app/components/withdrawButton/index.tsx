@@ -52,7 +52,7 @@ const withdrawSchema = z.object({
 
 type WithdrawForm = z.infer<typeof withdrawSchema>
 
-export default function WithdrawButton({ campaignAddress }: { campaignAddress: Address }) {
+export default function WithdrawButton({ campaignAddress, onSuccess }: { campaignAddress: Address, onSuccess: () => void }) {
     const [loading, setLoading] = useState(false)
     const [open, setOpen] = useState(false);
 
@@ -127,6 +127,7 @@ export default function WithdrawButton({ campaignAddress }: { campaignAddress: A
             toast.success("Withdraw request created!");
             form.reset();
             setOpen(false);
+            if (onSuccess) onSuccess();
         } catch (error) {
             toast.dismiss();
             console.error("Withdraw failed:", error);

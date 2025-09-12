@@ -12,7 +12,6 @@ export async function endCampaign(campaignAddress: Address) {
             args: [],
         });
 
-        console.log('End campaign tx sent:', txHash);
         return txHash;
     } catch (error) {
         console.error('Failed to end campaign:', error);

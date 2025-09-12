@@ -1,16 +1,12 @@
 import { Address } from "viem";
-import { publicClient, factoryAddress, crowdfundingFactoryAbi, crowdfundingAbi } from "./contracts";
+import { publicClient, crowdfundingAbi } from "./contracts";
 import { fetchUserContributions } from "@/lib/user-contribution";
-import { CampaignStruct } from "./campaigns";
+import { fetchAllCampaigns } from "./campaigns";
 
 export async function fetchDonatedCampaigns(user: Address) {
-    const campaigns = await publicClient.readContract({
-        address: factoryAddress,
-        abi: crowdfundingFactoryAbi,
-        functionName: "getAllCampaigns",
-    }) as CampaignStruct[];
+    const campaigns = await fetchAllCampaigns();
 
-    const campaignAddresses = campaigns.map((c) => c.campaignAddress);
+    const campaignAddresses = campaigns.map((c) => c.address);
 
     const contributions = await fetchUserContributions(user, campaignAddresses);
 
@@ -19,7 +15,7 @@ export async function fetchDonatedCampaigns(user: Address) {
             .filter((c) => c.totalContribution > 0)
             .map(async (c) => {
                 const campaignData = campaigns.find(
-                    (camp) => camp.campaignAddress === c.campaign
+                    (camp) => camp.address === c.campaign
                 )!;
 
                 // get latest withdraw request id
@@ -30,6 +26,7 @@ export async function fetchDonatedCampaigns(user: Address) {
                 }) as bigint;
 
                 let hasPendingVote = false;
+                let canRefund = false;
 
                 if (withdrawRequestCount > BigInt(0)) {
                     // check latest request
@@ -48,13 +45,15 @@ export async function fetchDonatedCampaigns(user: Address) {
                         args: [latestId, user],
                     });
 
-                    hasPendingVote = !req.finalized && vote === BigInt(0);
+                    hasPendingVote = !req.finalized && vote === 0;
+                    canRefund = campaignData.state === 2 || vote === 2;
                 }
 
                 return {
                     ...c,
                     name: campaignData.name,
                     hasPendingVote,
+                    canRefund,
                 };
             })
     );

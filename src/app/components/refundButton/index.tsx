@@ -7,7 +7,7 @@ import { publicClient } from "@/lib/contracts"
 import { toast } from 'sonner';
 import { BanknoteX } from "lucide-react"
 
-export default function RefundButton({ campaignAddress }: { campaignAddress: Address }) {
+export default function RefundButton({ campaignAddress, onSuccess }: { campaignAddress: Address, onSuccess: () => void }) {
     const [loading, setLoading] = useState(false)
 
     const handleRefund = async () => {
@@ -26,6 +26,8 @@ export default function RefundButton({ campaignAddress }: { campaignAddress: Add
                 closeButton: true,
                 position: "top-right",
             })
+
+            if (onSuccess) onSuccess();
         } catch (error) {
             toast.dismiss()
             console.error("Refund failed:", error)
@@ -44,23 +46,23 @@ export default function RefundButton({ campaignAddress }: { campaignAddress: Add
                 <TooltipTrigger asChild>
                     <AlertDialogTrigger asChild>
                         <button
-                            className="flex items-center gap-2 cursor-pointer bg-red-100 border border-red-300 hover:bg-red-200 text-red-600 hover:scale-105 py-2 px-4 max-sm:px-3 rounded transition"
-                            disabled={true}
+                            className="flex items-center gap-3 cursor-pointer bg-white border border-gray-700 font-semibold text-black hover:scale-105 py-2 px-4 max-sm:px-3 rounded transition"
+                            disabled={loading}
                         >
-                            <BanknoteX size={20} /> <span className='text-sm max-sm:hidden'>{loading ? "Processing..." : "Refund"}</span>
+                            <BanknoteX size={20} /> <span className='text-sm'>{loading ? "Processing..." : "Refund"}</span>
                         </button>
                     </AlertDialogTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>Refund (Coming Soon)</p>
+                    <p>Claim your remaining funds</p>
                 </TooltipContent>
             </Tooltip>
 
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Request Refund?</AlertDialogTitle>
+                    <AlertDialogTitle>Claim Refund?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Are you sure you want to request a refund for this campaign? This action
+                        Are you sure you want to claim a refund for this campaign? This action
                         cannot be undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>

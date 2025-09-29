@@ -31,7 +31,7 @@ import { fetchActiveWithdrawalRequests, WithdrawalWithVotes } from "@/lib/withdr
 import { useAccount } from "wagmi";
 import { checkIsBacker } from "@/lib/check-backer";
 import { getUserVote } from "@/lib/get-vote";
-import { voteWithdrawRequest } from "@/lib/vote";
+import { confirmWithdrawRequest } from "@/lib/confirm";
 import { differenceInDays } from "date-fns";
 import { fetchWithdrawalLogs, WithdrawalLog } from "@/lib/withdraw-logs";
 import WithdrawHistory from "@/app/components/WithdrawalLogs";
@@ -268,7 +268,7 @@ export default function CampaignPage() {
             // 1. Send vote transaction
             toast.loading("Sending vote...");
 
-            const txHash = await voteWithdrawRequest(
+            const txHash = await confirmWithdrawRequest(
                 campaign.address as Address,
                 BigInt(withdrawId),
                 approve,
@@ -503,11 +503,15 @@ export default function CampaignPage() {
                                     )}
                                     <button
                                         type="submit"
-                                        disabled={sendingFund}
+                                        disabled={sendingFund || !connectedAddress}
                                         className={`w-full py-3 rounded-lg text-md font-semibold cursor-pointer transition 
-                                    ${sendingFund ? "bg-gray-300 text-gray-700 cursor-not-allowed" : "bg-lime-300 hover:bg-lime-400 text-black"}`}
+                                    ${sendingFund || !connectedAddress ? "bg-gray-300 text-gray-700 cursor-not-allowed" : "bg-lime-300 hover:bg-lime-400 text-black"}`}
                                     >
-                                        {sendingFund ? "Sending fund..." : "Donate Now"}
+                                        {sendingFund
+                                            ? "Sending fund..."
+                                            : !connectedAddress
+                                                ? "Please Connect Wallet"
+                                                : "Donate Now"}
                                     </button>
                                 </form>
                             </Form>
@@ -635,11 +639,15 @@ export default function CampaignPage() {
                                 )}
                                 <button
                                     type="submit"
-                                    disabled={sendingFund}
+                                    disabled={sendingFund || !connectedAddress}
                                     className={`w-full py-3 rounded-lg text-md font-semibold cursor-pointer transition 
-                                    ${sendingFund ? "bg-gray-300 text-gray-700 cursor-not-allowed" : "bg-lime-300 hover:bg-lime-400 text-black"}`}
+                                    ${sendingFund || !connectedAddress ? "bg-gray-300 text-gray-700 cursor-not-allowed" : "bg-lime-300 hover:bg-lime-400 text-black"}`}
                                 >
-                                    {sendingFund ? "Sending fund..." : "Donate Now"}
+                                    {sendingFund
+                                        ? "Sending fund..."
+                                        : !connectedAddress
+                                            ? "Please Connect Wallet"
+                                            : "Donate Now"}
                                 </button>
                             </form>
                         </Form>

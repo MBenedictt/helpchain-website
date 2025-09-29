@@ -2,7 +2,7 @@ import { walletClient } from "@/lib/contracts";
 import { crowdfundingAbi } from "@/lib/contracts";
 import { Address } from "viem";
 
-export async function voteWithdrawRequest(
+export async function confirmWithdrawRequest(
     campaignAddress: Address,
     withdrawId: bigint,
     approve: boolean,
@@ -13,7 +13,7 @@ export async function voteWithdrawRequest(
     return walletClient.writeContract({
         address: campaignAddress,
         abi: crowdfundingAbi,
-        functionName: "voteWithdrawRequest",
+        functionName: "confirmWithdrawRequest",
         account,
         args: [withdrawId, approve],
     });

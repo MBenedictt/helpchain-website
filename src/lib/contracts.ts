@@ -4,7 +4,7 @@ import { createPublicClient, createWalletClient, custom, EIP1193Provider, http }
 import { sepolia } from 'wagmi/chains';
 
 // Your deployed factory address
-export const factoryAddress = '0xd378EC06c1dc7A7561EA0DC530419dB68daf278d';
+export const factoryAddress = '0xE7501c6Fa54000CAb76a993114740AA483318d5F';
 
 // Public client (read-only)
 export const publicClient = createPublicClient({

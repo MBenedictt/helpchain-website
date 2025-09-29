@@ -274,7 +274,7 @@ export default function Dashboard() {
                                                                 : 'bg-red-100 text-red-800'
                                                         }`}
                                                 >
-                                                    {c.state === 0 ? 'Active' : c.state === 1 ? 'Successful' : 'Failed'}
+                                                    {c.state === 0 ? 'Active' : c.state === 1 ? 'Completed' : 'Failed'}
                                                 </div>
 
 

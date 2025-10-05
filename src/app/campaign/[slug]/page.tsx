@@ -511,7 +511,7 @@ export default function CampaignPage() {
                                             ? "Sending fund..."
                                             : !connectedAddress
                                                 ? "Please Connect Wallet"
-                                                : "Donate Now"}
+                                                : "Fund Now"}
                                     </button>
                                 </form>
                             </Form>
@@ -647,7 +647,7 @@ export default function CampaignPage() {
                                         ? "Sending fund..."
                                         : !connectedAddress
                                             ? "Please Connect Wallet"
-                                            : "Donate Now"}
+                                            : "Fund Now"}
                                 </button>
                             </form>
                         </Form>

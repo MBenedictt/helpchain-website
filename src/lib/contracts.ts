@@ -6,10 +6,13 @@ import { sepolia } from 'wagmi/chains';
 // Your deployed factory address
 export const factoryAddress = '0xE7501c6Fa54000CAb76a993114740AA483318d5F';
 
+// Infura key
+const infuraKey = process.env.NEXT_PUBLIC_INFURA_API_KEY;
+
 // Public client (read-only)
 export const publicClient = createPublicClient({
     chain: sepolia,
-    transport: http(),
+    transport: http(`https://sepolia.infura.io/v3/${infuraKey}`),
 });
 
 // Wallet client (write, requires user to connect wallet)

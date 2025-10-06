@@ -6,7 +6,7 @@ import { sepolia } from 'wagmi/chains';
 // Your deployed factory address
 export const factoryAddress = '0x831e8EaB5f5FB11a48332209fA78056242c8FC36';
 
-// Infura key from env
+// Infura key from environtment variables
 const infuraKey = process.env.NEXT_PUBLIC_INFURA_API_KEY;
 
 // Public client (read-only)

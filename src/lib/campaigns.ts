@@ -8,8 +8,8 @@ function getCampaignDetailsMulticall(address: Address) {
         { address, abi: crowdfundingAbi as Abi, functionName: 'goal' },
         { address, abi: crowdfundingAbi as Abi, functionName: 'getContractBalance' },
         { address, abi: crowdfundingAbi as Abi, functionName: 'owner' },
-        { address, abi: crowdfundingAbi as Abi, functionName: 'getTiers' },
-        { address, abi: crowdfundingAbi as Abi, functionName: 'state' }
+        { address, abi: crowdfundingAbi as Abi, functionName: 'compoundingContributions' },
+        { address, abi: crowdfundingAbi as Abi, functionName: 'state' },
     ];
 }
 
@@ -20,12 +20,6 @@ export type CampaignStruct = {
     creationTime: bigint;
 };
 
-export type Tier = {
-    name: string;
-    amount: bigint;
-    backers: bigint;
-};
-
 export type HydratedCampaign = {
     address: Address;
     name: string;
@@ -33,10 +27,9 @@ export type HydratedCampaign = {
     goal: bigint;
     balance: bigint;
     owner: string;
-    tiers: Tier[];
+    compounding: bigint;
     state: number;
 };
-
 
 // ─── Hydrate Helper Functions ──────────────────────────────────────
 async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampaign> {
@@ -49,7 +42,7 @@ async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampai
         goal,
         balance,
         owner,
-        tiers,
+        compounding,
         state
     ] = (await publicClient.multicall({ contracts: multicallCalls })).map(result => result.result);
 
@@ -60,7 +53,7 @@ async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampai
         goal: goal as bigint,
         balance: balance as bigint,
         owner: owner as string,
-        tiers: tiers as Tier[],
+        compounding: compounding as bigint,
         state: state as number
     };
 }
@@ -82,7 +75,7 @@ async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCa
             goal,
             balance,
             owner,
-            tiers,
+            compounding,
             state
         ] = campaignResults.map(res => res.result);
 
@@ -93,9 +86,10 @@ async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCa
             goal: goal as bigint,
             balance: balance as bigint,
             owner: owner as string,
-            tiers: tiers as Tier[],
+            compounding: compounding as bigint,
             state: state as number
         });
+
         resultIndex += CALLS_PER_CAMPAIGN;
     }
 

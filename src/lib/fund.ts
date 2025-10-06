@@ -3,7 +3,6 @@ import { Address } from "viem";
 
 export async function fundCampaign(
     campaignAddress: Address,
-    tierIndex: number,
     amount: number
 ) {
     try {
@@ -17,7 +16,7 @@ export async function fundCampaign(
             address: campaignAddress,
             abi: crowdfundingAbi,
             functionName: "fund",
-            args: [BigInt(tierIndex)],
+            args: [],
             account,
             value: BigInt(amount),
         });

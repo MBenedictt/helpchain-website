@@ -4,7 +4,6 @@ import type { Address } from "viem";
 export type DonationLog = {
     backer: Address;
     amount: string;
-    tierIndex: number;
     timestamp: string;
     txHash: string;
 };
@@ -26,7 +25,6 @@ export async function fetchDonationLogs(campaignAddress: Address): Promise<Donat
     return data.map((row) => ({
         backer: row.backer as Address,
         amount: row.amount.toString(),
-        tierIndex: row.tier_index,
         timestamp: new Date(row.block_time).toLocaleString(),
         txHash: row.tx_hash,
     }));

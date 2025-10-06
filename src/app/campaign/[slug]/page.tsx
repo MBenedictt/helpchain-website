@@ -53,33 +53,20 @@ type Campaign = {
     goal: bigint;
     balance: bigint;
     owner: string;
-    tiers: {
-        name: string;
-        amount: bigint;
-    }[];
+    compounding: bigint;
 };
 
 function shortenAddress(address: string) {
     return `${address.slice(0, 8)}...${address.slice(-8)}`;
 }
 
-const donationSchema = z
-    .object({
-        tierIndex: z.number().nullable(),
-        amount: z.string().optional(),
-    })
-    .superRefine((data, ctx) => {
-        const noTierSelected = data.tierIndex === null;
-        const noAmountEntered = !data.amount || Number(data.amount) <= 0;
-
-        if (noTierSelected && noAmountEntered) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Select a tier or enter an amount",
-                path: ["amount"], // attach error to the USD input
-            });
-        }
-    });
+const donationSchema = z.object({
+    amount: z
+        .string()
+        .refine((val) => Number(val) > 0, {
+            message: "Enter a valid amount greater than 0",
+        }),
+});
 
 export default function CampaignPage() {
     const { slug } = useParams();
@@ -96,7 +83,6 @@ export default function CampaignPage() {
     const form = useForm<z.infer<typeof donationSchema>>({
         resolver: zodResolver(donationSchema),
         defaultValues: {
-            tierIndex: null,
             amount: "",
         },
     });
@@ -187,37 +173,23 @@ export default function CampaignPage() {
     }, [load]);
 
     const onSubmit = async (values: z.infer<typeof donationSchema>) => {
-        let tierIndexToSend: number;
-        let amountToSend: number;
-
-        if (values.tierIndex !== null) {
-            tierIndexToSend = values.tierIndex;
-            amountToSend = Number(campaign!.tiers[values.tierIndex].amount);
-        } else {
-            tierIndexToSend = campaign!.tiers.length; // custom amount
-            amountToSend = Number(values.amount!);
-        }
-
         try {
-            if (!walletClient) {
-                throw new Error("Please connect your wallet.");
-            }
+            if (!walletClient) throw new Error("Please connect your wallet.");
 
             const [account] = await walletClient.getAddresses();
+            const amountToSend = Number(values.amount);
 
             setSendingFund(true);
             toast.loading("Sending donation...");
 
             const txHash = await fundCampaign(
                 campaign!.address as Address,
-                tierIndexToSend,
                 amountToSend
             );
 
             toast.loading("Waiting for confirmation...");
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-
             const block = await publicClient.getBlock({ blockNumber: receipt.blockNumber });
             const blockTimestampSec = Number(block.timestamp);
 
@@ -228,7 +200,6 @@ export default function CampaignPage() {
                     campaignAddress: campaign!.address,
                     backer: account,
                     amountWei: String(amountToSend),
-                    tierIndex: tierIndexToSend,
                     txHash,
                     blockTimestampSec,
                 }),
@@ -237,15 +208,10 @@ export default function CampaignPage() {
             toast.dismiss();
             toast.success("Donation sent!", {
                 closeButton: true,
-                position: "top-right"
+                position: "top-right",
             });
 
-            form.reset({
-                tierIndex: null,
-                amount: "",
-            });
-
-            // 3. Refresh data
+            form.reset({ amount: "" });
             await load();
         } catch (err) {
             toast.dismiss();
@@ -324,14 +290,17 @@ export default function CampaignPage() {
                         <div className="border-b border-gray-300 mb-4 pb-2">
                             <h2 className="text-sm">Fund Raised</h2>
                             <p className="mb-2 text-2xl font-bold">
-                                ${Number(campaign!.balance)}
+                                ${Number(campaign!.compounding)}
                             </p>
                             <Progress
                                 value={Number(
-                                    (campaign!.balance * BigInt(100)) / campaign!.goal
+                                    (campaign!.compounding * BigInt(100)) / campaign!.goal
                                 )}
                             />
-                            <div className="flex max-md:flex-col justify-between items-center max-md:items-start my-2 text-gray-500">
+                            <div className="flex max-md:flex-col justify-between items-center max-md:items-start mt-2 mb-4 text-gray-500">
+                                <p className="text-sm">
+                                    Campaign Balance: ${Number(campaign!.balance)}
+                                </p>
                                 <p className="text-sm">
                                     ${Number(campaign!.goal)} Goal
                                 </p>
@@ -427,38 +396,7 @@ export default function CampaignPage() {
                                     onSubmit={form.handleSubmit(onSubmit)}
                                     className="space-y-4 hidden max-[991px]:block"
                                 >
-                                    <p className="text-gray-600 text-sm mt-2">Quick Selection</p>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {campaign!.tiers.length === 0 ? (
-                                            <p className="col-span-3 text-center text-gray-500 text-sm italic mb-2">
-                                                No tiers available for this campaign.
-                                            </p>
-                                        ) : (
-                                            campaign!.tiers.map((tier, index) => (
-                                                <div
-                                                    key={index}
-                                                    onClick={() => {
-                                                        const current = form.watch("tierIndex");
-                                                        if (current === index) {
-                                                            form.setValue("tierIndex", null);
-                                                        } else {
-                                                            form.setValue("tierIndex", index);
-                                                            form.setValue("amount", "");
-                                                        }
-                                                    }}
-                                                    className={`cursor-pointer rounded-lg border p-2 text-center transition ${form.watch("tierIndex") === index
-                                                        ? "border-lime-600 bg-lime-100"
-                                                        : "border-gray-300 hover:bg-gray-100"
-                                                        }`}
-                                                >
-                                                    <p className="text-[12px] text-gray-500">{tier.name}</p>
-                                                    <h1 className="text-xl font-bold">
-                                                        ${Number(tier.amount)}
-                                                    </h1>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
+                                    <p className="text-gray-600 text-sm mt-2">Input amount</p>
 
                                     <FormField
                                         control={form.control}
@@ -467,10 +405,7 @@ export default function CampaignPage() {
                                             <FormItem>
                                                 <FormControl>
                                                     <div
-                                                        className={`w-full flex items-center border rounded-lg px-4 py-3 ${form.watch("tierIndex") === null
-                                                            ? "border-lime-500"
-                                                            : "border-gray-300"
-                                                            }`}
+                                                        className="w-full flex items-center border rounded-lg px-4 py-3 border-gray-300 focus:border-lime-500"
                                                     >
                                                         <div className="flex flex-col items-center mr-2">
                                                             <span className="text-2xl font-bold">$</span>
@@ -482,10 +417,7 @@ export default function CampaignPage() {
                                                             placeholder="0"
                                                             {...field}
                                                             value={field.value || ""}
-                                                            onChange={(e) => {
-                                                                field.onChange(e);
-                                                                form.setValue("tierIndex", null);
-                                                            }}
+                                                            onChange={field.onChange}
                                                             className="w-full border-none shadow-none text-right text-2xl font-bold outline-none"
                                                         />
                                                     </div>
@@ -563,38 +495,7 @@ export default function CampaignPage() {
                                 onSubmit={form.handleSubmit(onSubmit)}
                                 className="space-y-4"
                             >
-                                <p className="text-gray-600 text-sm mt-2">Quick Selection</p>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {campaign!.tiers.length === 0 ? (
-                                        <p className="col-span-3 text-center text-gray-500 text-sm italic mb-2">
-                                            No tiers available for this campaign.
-                                        </p>
-                                    ) : (
-                                        campaign!.tiers.map((tier, index) => (
-                                            <div
-                                                key={index}
-                                                onClick={() => {
-                                                    const current = form.watch("tierIndex");
-                                                    if (current === index) {
-                                                        form.setValue("tierIndex", null);
-                                                    } else {
-                                                        form.setValue("tierIndex", index);
-                                                        form.setValue("amount", "");
-                                                    }
-                                                }}
-                                                className={`cursor-pointer rounded-lg border p-2 text-center transition ${form.watch("tierIndex") === index
-                                                    ? "border-lime-600 bg-lime-100"
-                                                    : "border-gray-300 hover:bg-gray-100"
-                                                    }`}
-                                            >
-                                                <p className="text-[12px] text-gray-500">{tier.name}</p>
-                                                <h1 className="text-xl font-bold">
-                                                    ${Number(tier.amount)}
-                                                </h1>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
+                                <p className="text-gray-600 text-sm mt-2">Input amount</p>
 
                                 <FormField
                                     control={form.control}
@@ -603,10 +504,7 @@ export default function CampaignPage() {
                                         <FormItem>
                                             <FormControl>
                                                 <div
-                                                    className={`w-full flex items-center border rounded-lg px-4 py-3 ${form.watch("tierIndex") === null
-                                                        ? "border-lime-500"
-                                                        : "border-gray-300"
-                                                        }`}
+                                                    className="w-full flex items-center border rounded-lg px-4 py-3 border-gray-300 focus:border-lime-500"
                                                 >
                                                     <div className="flex flex-col items-center mr-2">
                                                         <span className="text-2xl font-bold">$</span>
@@ -618,10 +516,7 @@ export default function CampaignPage() {
                                                         placeholder="0"
                                                         {...field}
                                                         value={field.value || ""}
-                                                        onChange={(e) => {
-                                                            field.onChange(e);
-                                                            form.setValue("tierIndex", null);
-                                                        }}
+                                                        onChange={field.onChange}
                                                         className="w-full border-none shadow-none text-right text-2xl font-bold outline-none"
                                                     />
                                                 </div>

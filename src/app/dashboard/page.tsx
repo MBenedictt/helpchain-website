@@ -26,7 +26,6 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '../components/ui/alert-dialog';
-import AddTiersButton from '../components/AddTierButton';
 import Link from 'next/link';
 import { fetchDonatedCampaigns } from '@/lib/donated-campaigns';
 import {
@@ -55,12 +54,8 @@ type Campaign = {
     goal: bigint;
     balance: bigint;
     owner: string;
-    tiers: {
-        name: string;
-        amount: bigint;
-        backers: bigint;
-    }[];
     state: number;
+    compounding: bigint;
 };
 
 type Contribution = {
@@ -262,11 +257,11 @@ export default function Dashboard() {
                                                 </Tooltip>
                                             </div>
 
-                                            <Progress value={Number((c.balance * BigInt(100)) / c.goal)} className='mt-5 mb-3' />
+                                            <Progress value={Number((c.compounding * BigInt(100)) / c.goal)} className='mt-5 mb-3' />
 
-                                            <div className='flex justify-between items-center'>
+                                            <div className='flex justify-between items-center max-sm:flex-col-reverse max-sm:items-start max-sm:gap-2'>
                                                 <div
-                                                    className={`px-3 py-1 rounded-full text-[10px] font-medium w-fit mb-2
+                                                    className={`px-3 py-1 rounded-full text-[10px] font-medium w-fit
                                                     ${c.state === 0
                                                             ? 'bg-green-100 text-green-800'
                                                             : c.state === 1
@@ -279,11 +274,11 @@ export default function Dashboard() {
 
 
                                                 <p className="text-gray-500 font-semibold">
-                                                    ${c.goal.toString()} Goal
+                                                    ${Number(c!.compounding)} / ${c.goal.toString()} Goal
                                                 </p>
                                             </div>
 
-                                            <p className="text-gray-500 text-sm mt-2">
+                                            <p className="text-gray-500 text-sm mt-4">
                                                 Campaign Balance:
                                             </p>
                                             <p className="text-black text-xl font-semibold">
@@ -368,50 +363,54 @@ export default function Dashboard() {
                                                     return <WithdrawButton campaignAddress={c.address as Address} onSuccess={loadUserCampaigns} />;
                                                 })()}
 
-                                                {c.state === 0 && c.activeWithdrawals.length === 0 && (
-                                                    <AddTiersButton campaignAddress={c.address as Address} />
-                                                )}
+                                                {c.state === 0 &&
+                                                    (c.activeWithdrawals.length === 0 &&
+                                                        (c.compounding === BigInt(0) || c.compounding >= c.goal)) && (
+                                                        <AlertDialog>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <AlertDialogTrigger asChild>
+                                                                        <button
+                                                                            className="cursor-pointer bg-red-100 border border-red-300 hover:bg-red-200 text-red-600 px-3 py-2 rounded hover:scale-105 transition"
+                                                                        >
+                                                                            <Ban size={16} />
+                                                                        </button>
+                                                                    </AlertDialogTrigger>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>End Campaign</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
 
-                                                {c.state === 0 && c.activeWithdrawals.length === 0 && (
-                                                    <AlertDialog>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <AlertDialogTrigger asChild>
-                                                                    <button
-                                                                        className="cursor-pointer bg-red-100 border border-red-300 hover:bg-red-200 text-red-600 px-3 py-2 rounded hover:scale-105 transition"
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>End Campaign?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        <strong className="text-black font-semibold">
+                                                                            This will finalize the campaign permanently.
+                                                                        </strong>
+                                                                        <br />
+                                                                        - If no withdrawals happened, it will be marked{" "}
+                                                                        <strong>Failed</strong>.
+                                                                        <br />
+                                                                        - Otherwise, it will be marked{" "}
+                                                                        <strong>Successful</strong>.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel className="cursor-pointer">
+                                                                        Cancel
+                                                                    </AlertDialogCancel>
+                                                                    <AlertDialogAction
+                                                                        className="cursor-pointer bg-lime-300 hover:bg-lime-400 text-black"
+                                                                        onClick={() => handleEndCampaign(c.address as Address)}
                                                                     >
-                                                                        <Ban size={16} />
-                                                                    </button>
-                                                                </AlertDialogTrigger>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>End Campaign</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>End Campaign?</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    <strong className="text-black font-semibold">This will finalize the campaign permanently.</strong>
-                                                                    <br />
-                                                                    - If no withdrawals happened, it will be marked <strong>Failed</strong>.
-                                                                    <br />
-                                                                    - Otherwise, it will be marked <strong>Successful</strong>.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
-                                                                <AlertDialogAction
-                                                                    className="cursor-pointer bg-lime-300 hover:bg-lime-400 text-black"
-                                                                    onClick={() => handleEndCampaign(c.address as Address)}
-                                                                >
-                                                                    End Campaign
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                )}
+                                                                        End Campaign
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    )}
                                             </div>
                                         </div>
                                     ))}

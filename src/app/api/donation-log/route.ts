@@ -8,7 +8,6 @@ export async function POST(req: Request) {
             campaignAddress: `0x${string}`;
             backer: `0x${string}`;
             amountWei: string;
-            tierIndex: number;
             txHash: `0x${string}`;
             blockTimestampSec: number;
         };
@@ -20,7 +19,6 @@ export async function POST(req: Request) {
                 campaign_address: body.campaignAddress.toLowerCase(),
                 backer: body.backer.toLowerCase(),
                 amount: body.amountWei,
-                tier_index: body.tierIndex,
                 block_time: new Date(body.blockTimestampSec * 1000).toISOString(),
                 tx_hash: body.txHash,
             }], { onConflict: "tx_hash" });

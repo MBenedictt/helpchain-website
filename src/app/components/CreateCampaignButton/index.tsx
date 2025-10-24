@@ -29,6 +29,7 @@ import { Textarea } from '../ui/textarea';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
 import { publicClient } from '@/lib/contracts';
+import { useAccount } from 'wagmi';
 
 const formSchema = z.object({
     name: z.string().min(1, 'Campaign name is required'),
@@ -46,6 +47,7 @@ type CreateCampaignButtonProps = {
 export default function CreateCampaignButton({ onCampaignCreated }: CreateCampaignButtonProps) {
     const [creating, setCreating] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const { address: connectedAddress } = useAccount();
 
     const form = useForm({
         resolver: zodResolver(formSchema),
@@ -106,8 +108,13 @@ export default function CreateCampaignButton({ onCampaignCreated }: CreateCampai
             }}
         >
             <DialogTrigger asChild>
-                <button className="cursor-pointer px-5 py-3 rounded-lg text-sm font-medium bg-lime-300 text-slate-800 hover:bg-lime-400 transition hover:scale-103">
-                    Create Campaign
+                <button
+                    className={`cursor-pointer px-5 py-3 rounded-lg text-sm font-medium ${!connectedAddress ? "bg-gray-300 text-gray-700 cursor-not-allowed" : "bg-lime-300 text-slate-800 hover:bg-lime-400 transition hover:scale-103"}`}
+                    disabled={!connectedAddress}
+                >
+                    {!connectedAddress
+                        ? "Please Connect Wallet"
+                        : "Create Campaign"}
                 </button>
             </DialogTrigger>
 

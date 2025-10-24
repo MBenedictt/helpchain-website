@@ -62,6 +62,11 @@ const Navbar = () => {
                                 <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">Dashboard</span>
                             </Link>
                         </li>
+                        <li className="font-semibold max-[991px]:hidden">
+                            <Link href="/howitworks" className="relative group flex">
+                                <span className="group-hover:after:w-full after:w-0 after:h-[1px] after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300 text-sm font-[400]">How It Works</span>
+                            </Link>
+                        </li>
                     </ul>
                 </div>
                 <CustomWalletButton />
@@ -91,6 +96,11 @@ const Navbar = () => {
                         <li className="font-medium text-xl py-4">
                             <Link href="/dashboard" className="relative group flex w-fit">
                                 <span className="group-hover:after:w-full after:w-0 after:h-0.5 after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300">Dashboard</span>
+                            </Link>
+                        </li>
+                        <li className="font-medium text-xl py-4">
+                            <Link href="/howitworks" className="relative group flex w-fit">
+                                <span className="group-hover:after:w-full after:w-0 after:h-0.5 after:bg-black after:absolute after:bottom-0 after:left-0 after:transition-all after:duration-300">How It Works</span>
                             </Link>
                         </li>
                     </ul>

@@ -212,7 +212,7 @@ export default function HowItWorks() {
                     </ol>
                 </div>
 
-                {/* ENDING */}
+                {/* ENDING SECTION */}
                 <div className="mt-12 border-t-2 border-gray-600 pt-8 text-center">
                     <h2 className="text-2xl font-bold text-black mb-4">
                         Track Everything on the Blockchain

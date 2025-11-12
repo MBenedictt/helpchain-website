@@ -10,6 +10,7 @@ interface CampaignCardProps {
     goal: bigint;
     balance: bigint;
     owner: string;
+    index?: number; // 👈 add this
 }
 
 function shortenAddress(address: string) {
@@ -22,15 +23,26 @@ export default function CampaignCard({
     owner,
     goal,
     balance,
+    index = 0, // default to 0
 }: CampaignCardProps) {
     const progress = Number((balance * BigInt(100)) / goal);
+
+    // 🔹 Image list
+    const images = [
+        "/assets/campaign-img 1.jpg",
+        "/assets/campaign-img 2.jpg",
+        "/assets/campaign-img 3.png",
+    ];
+
+    // 🔹 Loop through images (1 → 3 → repeat)
+    const image = images[index % images.length];
 
     return (
         <Link href={`/campaign/${address}`}>
             <Card className="h-[420px] max-md:h-fit overflow-hidden hover:shadow-md hover:scale-[1.01] transition-all cursor-pointer px-4 pt-4">
                 <div className="relative h-fit">
                     <Image
-                        src="/assets/campaign-img.jpg"
+                        src={image}
                         alt="Campaign thumbnail"
                         width={300}
                         height={250}

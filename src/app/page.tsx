@@ -138,8 +138,8 @@ export default function Home() {
                 .filter((campaign) => campaign.state === 0)
                 .reverse()
                 .slice(0, 3)
-                .map((campaign) => (
-                  <CampaignCard key={campaign.address} {...campaign} />
+                .map((campaign, index) => (
+                  <CampaignCard key={campaign.address} {...campaign} index={index} />
                 ))}
             </div>
           ) : (
@@ -185,10 +185,10 @@ export default function Home() {
 
             <div data-aos="fade-up" data-aos-once="true">
               <Link
-                href="/"
+                href="/howitworks"
                 className="inline-block px-4 py-2 md:px-5 md:py-3 rounded-lg text-sm md:text-base font-medium bg-lime-300 text-slate-800 hover:bg-lime-400 transition hover:scale-103"
               >
-                Create a Campaign
+                How it Works
               </Link>
             </div>
 

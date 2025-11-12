@@ -119,8 +119,8 @@ export default function CampaignsPage() {
                                 {campaigns
                                     .filter((campaign) => campaign.state === 0)
                                     .reverse()
-                                    .map((campaign) => (
-                                        <CampaignCard key={campaign.address} {...campaign} />
+                                    .map((campaign, index) => (
+                                        <CampaignCard key={campaign.address} {...campaign} index={index} />
                                     ))}
                             </div>
 

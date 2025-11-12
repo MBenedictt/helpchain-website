@@ -433,6 +433,14 @@ export default function Dashboard() {
                                     </p>
                                 ) : (
                                     donatedCampaigns.map((c, i) => {
+                                        const images = [
+                                            "/assets/campaign-img 1.jpg",
+                                            "/assets/campaign-img 2.jpg",
+                                            "/assets/campaign-img 3.png",
+                                        ];
+
+                                        // 🔹 Pick image based on index (1 → 2 → 3 → repeat)
+                                        const image = images[i % images.length];
                                         return (
                                             <div
                                                 key={i}
@@ -440,7 +448,7 @@ export default function Dashboard() {
                                             >
                                                 <div className='w-[250px] h-full max-md:w-full max-md:h-[100px] rounded-lg bg-gray-100'>
                                                     <Image
-                                                        src="/assets/campaign-img.jpg"
+                                                        src={image}
                                                         alt="Campaign thumbnail"
                                                         width={400}
                                                         height={350}

@@ -439,7 +439,6 @@ export default function Dashboard() {
                                             "/assets/campaign-img 3.png",
                                         ];
 
-                                        // 🔹 Pick image based on index (1 → 2 → 3 → repeat)
                                         const image = images[i % images.length];
                                         return (
                                             <div

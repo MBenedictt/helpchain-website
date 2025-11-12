@@ -27,7 +27,7 @@ export default function HowItWorks() {
                         <Link href="/https://metamask.io/download" className="px-5 py-3 rounded-lg text-sm font-medium bg-lime-300 text-slate-800 hover:bg-lime-400 transition hover:scale-103 text-center max-sm:w-full">
                             Create Metamask Wallet
                         </Link>
-                        <Link href="https://www.alchemy.com/faucets/ethereum-sepolia" target="_blank" className="px-5 py-3 rounded-lg text-sm font-medium bg-[rgba(255,255,255,0.1)] text-lime-800 hover:bg-[rgba(255,255,255,0.5)] border border-lime-600 transition hover:scale-103 text-center max-sm:w-full">
+                        <Link href="https://cloud.google.com/application/web3/faucet/ethereum/sepolia" target="_blank" className="px-5 py-3 rounded-lg text-sm font-medium bg-[rgba(255,255,255,0.1)] text-lime-800 hover:bg-[rgba(255,255,255,0.5)] border border-lime-600 transition hover:scale-103 text-center max-sm:w-full">
                             Get Faucet
                         </Link>
                     </div>

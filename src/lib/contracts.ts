@@ -3,7 +3,7 @@ import CrowdfundingAbi from '../frontend-abis/Crowdfunding.json';
 import { createPublicClient, createWalletClient, custom, EIP1193Provider, http } from 'viem';
 import { sepolia } from 'wagmi/chains';
 
-// Your deployed factory address Hapus ini
+// Your deployed factory address
 export const factoryAddress = '0x78747BAA22d80580E00b09E0aDA399C9eB62d1b7';
 
 // Infura key from environtment variables

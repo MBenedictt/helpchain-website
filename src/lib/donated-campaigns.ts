@@ -36,7 +36,16 @@ export async function fetchDonatedCampaigns(user: Address) {
                         abi: crowdfundingAbi,
                         functionName: "getWithdrawRequest",
                         args: [latestId],
-                    }) as { finalized: boolean };
+                    }) as [
+                            bigint,  // id
+                            bigint,  // amount
+                            bigint,  // totalYesWeight
+                            bigint,  // totalNoWeight
+                            bigint,  // startTime
+                            bigint,  // endTime
+                            boolean, // finalized
+                            boolean  // approved
+                        ];
 
                     const vote = await publicClient.readContract({
                         address: c.campaign,
@@ -45,7 +54,7 @@ export async function fetchDonatedCampaigns(user: Address) {
                         args: [latestId, user],
                     });
 
-                    hasPendingVote = !req.finalized && vote === 0;
+                    hasPendingVote = !req[6] && vote === 0;
                     canRefund = campaignData.state === 2 || vote === 2;
                 }
 

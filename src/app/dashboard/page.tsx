@@ -365,7 +365,8 @@ export default function Dashboard() {
 
                                                 {c.state === 0 &&
                                                     (c.activeWithdrawals.length === 0 &&
-                                                        (c.compounding === BigInt(0) || c.compounding >= c.goal)) && (
+                                                        (c.compounding === BigInt(0) || c.compounding >= c.goal)) &&
+                                                    c.balance === BigInt(0) && (
                                                         <AlertDialog>
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -503,7 +504,7 @@ export default function Dashboard() {
                                                                 To{" "}
                                                                 <span className="font-bold text-black">
                                                                     <Link
-                                                                        href={`https://sepolia.etherscan.io/address/${c.campaign}`}
+                                                                        href={`/campaign/${c.campaign}`}
                                                                         target="_blank"
                                                                         className="cursor-pointer hover:underline"
                                                                     >

@@ -247,7 +247,7 @@ export default function CampaignPage() {
             await publicClient.waitForTransactionReceipt({ hash: txHash });
 
             toast.dismiss();
-            toast.success("Vote submitted!", {
+            toast.success("Confirmation submitted!", {
                 closeButton: true,
                 position: "top-right",
             });

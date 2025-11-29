@@ -534,15 +534,26 @@ export default function CampaignPage() {
                                 )}
                                 <button
                                     type="submit"
-                                    disabled={sendingFund || !connectedAddress}
+                                    disabled={
+                                        sendingFund ||
+                                        !connectedAddress ||
+                                        connectedAddress?.toLowerCase() === campaign!.owner.toLowerCase()
+                                    }
                                     className={`w-full py-3 rounded-lg text-md font-semibold cursor-pointer transition 
-                                    ${sendingFund || !connectedAddress ? "bg-gray-300 text-gray-700 cursor-not-allowed" : "bg-lime-300 hover:bg-lime-400 text-black"}`}
+                                            ${sendingFund ||
+                                            !connectedAddress ||
+                                            connectedAddress?.toLowerCase() === campaign!.owner.toLowerCase()
+                                            ? "bg-gray-300 text-gray-700 cursor-not-allowed"
+                                            : "bg-lime-300 hover:bg-lime-400 text-black"
+                                        }`}
                                 >
                                     {sendingFund
                                         ? "Sending fund..."
                                         : !connectedAddress
                                             ? "Please Connect Wallet"
-                                            : "Fund Now"}
+                                            : connectedAddress?.toLowerCase() === campaign!.owner.toLowerCase()
+                                                ? "You Are The Owner"
+                                                : "Fund Now"}
                                 </button>
                             </form>
                         </Form>

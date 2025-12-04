@@ -11,7 +11,7 @@ interface CampaignCardProps {
     balance: bigint;
     owner: string;
     compounding: bigint;
-    index?: number; // 👈 add this
+    index?: number;
 }
 
 function shortenAddress(address: string) {

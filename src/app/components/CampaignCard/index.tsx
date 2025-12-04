@@ -10,6 +10,7 @@ interface CampaignCardProps {
     goal: bigint;
     balance: bigint;
     owner: string;
+    compounding: bigint;
     index?: number; // 👈 add this
 }
 
@@ -23,6 +24,7 @@ export default function CampaignCard({
     owner,
     goal,
     balance,
+    compounding,
     index = 0, // default to 0
 }: CampaignCardProps) {
     const progress = Number((balance * BigInt(100)) / goal);
@@ -71,7 +73,7 @@ export default function CampaignCard({
                         <Progress value={progress} />
                         <div className="flex items-center justify-between mt-2">
                             <span className="text-md font-bold text-gray-900">
-                                ${Number(balance)}
+                                ${Number(compounding)}
                             </span>
                             <span className="text-sm text-gray-500">
                                 ${Number(goal)} Goal

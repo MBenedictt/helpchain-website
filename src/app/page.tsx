@@ -22,6 +22,7 @@ type Campaign = {
   balance: bigint;
   owner: string;
   state: number;
+  compounding: bigint;
 };
 
 export default function Home() {

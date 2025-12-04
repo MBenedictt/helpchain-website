@@ -27,6 +27,7 @@ type Campaign = {
     balance: bigint;
     owner: string;
     state: number;
+    compounding: bigint;
 };
 
 const PER_PAGE = 6;

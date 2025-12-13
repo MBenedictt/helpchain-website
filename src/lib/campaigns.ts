@@ -114,12 +114,19 @@ export async function getPaginatedCampaigns(page: number, perPage: number) {
         functionName: 'getAllCampaigns',
     }) as CampaignStruct[];
 
-    const paginated = campaigns.slice((page - 1) * perPage, page * perPage);
-    const hydrated = await hydrateCampaigns(paginated);
+    // hydrate ALL first
+    const hydrated = await hydrateCampaigns(campaigns);
+
+    // filter BEFORE pagination
+    const activeCampaigns = hydrated.filter(c => c.state === 0);
+
+    // paginate AFTER filtering
+    const start = (page - 1) * perPage;
+    const paginated = activeCampaigns.slice(start, start + perPage);
 
     return {
-        campaigns: hydrated,
-        total: campaigns.length,
+        campaigns: paginated,
+        total: activeCampaigns.length,
     };
 }
 

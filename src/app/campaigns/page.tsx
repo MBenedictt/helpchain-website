@@ -118,7 +118,7 @@ export default function CampaignsPage() {
                         <>
                             <div className="grid md:grid-cols-3 gap-6 mb-10">
                                 {campaigns
-                                    .filter((campaign) => campaign.state === 0)
+                                    .slice()
                                     .reverse()
                                     .map((campaign, index) => (
                                         <CampaignCard key={campaign.address} {...campaign} index={index} />

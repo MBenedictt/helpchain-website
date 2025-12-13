@@ -27,7 +27,10 @@ export default function CampaignCard({
     compounding,
     index = 0, // default to 0
 }: CampaignCardProps) {
-    const progress = Number((balance * BigInt(100)) / goal);
+    const progress = Math.min(
+        100,
+        Number((compounding * BigInt(100)) / goal)
+    );
 
     // 🔹 Image list
     const images = [

@@ -301,7 +301,7 @@ export default function Dashboard() {
                                                                         <p className="text-[12px] text-gray-500 mt-2">
                                                                             Backers have covered{" "}
                                                                             <span className="font-semibold">
-                                                                                {active.yesPercentage >= 1
+                                                                                {active.yesPercentage >= 100
                                                                                     ? `100%`
                                                                                     : `${active.yesPercentage.toFixed(2)}%`}
                                                                             </span>{" "}

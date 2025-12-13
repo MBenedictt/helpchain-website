@@ -330,7 +330,7 @@ export default function CampaignPage() {
                                                 <p className="text-[12px] text-gray-500 mt-2">
                                                     Backers have covered{" "}
                                                     <span className="font-semibold">
-                                                        {w.yesPercentage >= 1
+                                                        {w.yesPercentage >= 100
                                                             ? `100%`
                                                             : `${w.yesPercentage.toFixed(2)}%`}
                                                     </span>{" "}

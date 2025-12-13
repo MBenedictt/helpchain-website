@@ -186,7 +186,7 @@ export default function WithdrawButton({ campaignAddress, onSuccess }: { campaig
                             name="votingDuration"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Confirm Duration (days)</FormLabel>
+                                    <FormLabel>Confirm Duration (minutes)</FormLabel>
                                     <FormControl>
                                         <Input type="number" placeholder="Enter duration in minutes" {...field} />
                                     </FormControl>

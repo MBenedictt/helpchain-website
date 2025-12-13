@@ -30,7 +30,7 @@ type Campaign = {
     compounding: bigint;
 };
 
-const PER_PAGE = 6;
+const PER_PAGE = 7;
 const categories = [
     "All", "📚 Education", "❤️ Social", "🩺 Health", "🌪️ Disaster", "🌱 Environment"
 ];

@@ -235,7 +235,7 @@ export default function Dashboard() {
                                 </p>
                             ) : (
                                 <div className="gap-5">
-                                    {campaigns.map((c, i) => (
+                                    {[...campaigns].reverse().map((c, i) => (
                                         <div
                                             key={i}
                                             className="p-5"

@@ -163,7 +163,7 @@ export default function WithdrawButton({ campaignAddress, onSuccess }: { campaig
                         <AlertDialogHeader>
                             <AlertDialogTitle>Withdraw Funds</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Please enter the withdraw amount and voting duration.
+                                Please enter the withdraw amount and confirm duration. For the sake of testing, confirm duration will be in minutes.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
 
@@ -186,9 +186,9 @@ export default function WithdrawButton({ campaignAddress, onSuccess }: { campaig
                             name="votingDuration"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Voting Duration (days)</FormLabel>
+                                    <FormLabel>Confirm Duration (days)</FormLabel>
                                     <FormControl>
-                                        <Input type="number" placeholder="Enter duration in days" {...field} />
+                                        <Input type="number" placeholder="Enter duration in minutes" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

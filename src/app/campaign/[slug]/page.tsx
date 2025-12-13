@@ -232,7 +232,7 @@ export default function CampaignPage() {
             setLoadingVote(true);
 
             // 1. Send vote transaction
-            toast.loading("Sending vote...");
+            toast.loading("Sending confirmation...");
 
             const txHash = await confirmWithdrawRequest(
                 campaign.address as Address,
@@ -256,8 +256,8 @@ export default function CampaignPage() {
             await load();
         } catch (err) {
             toast.dismiss();
-            console.error("Vote error:", err);
-            toast.error("Failed to submit vote.", {
+            console.error("Confirmation error:", err);
+            toast.error("Failed to submit confirmation.", {
                 closeButton: true,
                 position: "top-right",
             });

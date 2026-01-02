@@ -35,7 +35,6 @@ import { confirmWithdrawRequest } from "@/lib/confirm";
 import { differenceInDays } from "date-fns";
 import { fetchWithdrawalLogs, WithdrawalLog } from "@/lib/withdraw-logs";
 import WithdrawHistory from "@/app/components/WithdrawalLogs";
-import RefundButton from "@/app/components/refundButton";
 
 function formatVotingDeadline(createdAt: string, deadline: string) {
     const created = new Date(createdAt);
@@ -54,6 +53,7 @@ type Campaign = {
     balance: bigint;
     owner: string;
     compounding: bigint;
+    deadline: bigint;
 };
 
 function shortenAddress(address: string) {
@@ -272,6 +272,26 @@ export default function CampaignPage() {
         );
     }
 
+    const deadlineDate = campaign!.deadline > BigInt(0)
+        ? new Date(Number(campaign!.deadline) * 1000)
+        : null;
+
+    const now = Math.floor(Date.now() / 1000);
+
+    const isExpired =
+        campaign!.deadline > BigInt(0) &&
+        BigInt(now) >= campaign!.deadline;
+
+    const formattedDeadline = deadlineDate
+        ? isExpired
+            ? "Campaign Ended"
+            : `Ends on ${deadlineDate.toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+            })}`
+        : " ";
+
     return (
         <div className="font-inter">
             <Navbar />
@@ -289,9 +309,13 @@ export default function CampaignPage() {
                         />
                         <div className="border-b border-gray-300 mb-4 pb-2">
                             <h2 className="text-sm">Fund Raised</h2>
-                            <p className="mb-2 text-2xl font-bold">
-                                ${Number(campaign!.compounding)}
-                            </p>
+                            <div className="mb-2 flex justify-between items-center">
+                                <p className="text-2xl font-bold">
+                                    ${Number(campaign!.compounding)}
+                                </p>
+                                <p className="text-sm text-gray-500 italic">{formattedDeadline}</p>
+                            </div>
+
                             <Progress
                                 value={Number(
                                     (campaign!.compounding * BigInt(100)) / campaign!.goal
@@ -384,7 +408,6 @@ export default function CampaignPage() {
                                                     <p className="text-sm text-red-600 font-semibold w-3/4 max-sm:w-full text-center max-sm:text-right">
                                                         You Rejected This Request
                                                     </p>
-                                                    <RefundButton campaignAddress={campaign!.address as Address} onSuccess={load} />
                                                 </div>
                                             )}
 
@@ -443,7 +466,11 @@ export default function CampaignPage() {
                                             ? "Sending fund..."
                                             : !connectedAddress
                                                 ? "Please Connect Wallet"
-                                                : "Fund Now"}
+                                                : isExpired
+                                                    ? "Campaign Ended"
+                                                    : connectedAddress?.toLowerCase() === campaign!.owner.toLowerCase()
+                                                        ? "You Are The Owner"
+                                                        : "Fund Now"}
                                     </button>
                                 </form>
                             </Form>
@@ -551,9 +578,11 @@ export default function CampaignPage() {
                                         ? "Sending fund..."
                                         : !connectedAddress
                                             ? "Please Connect Wallet"
-                                            : connectedAddress?.toLowerCase() === campaign!.owner.toLowerCase()
-                                                ? "You Are The Owner"
-                                                : "Fund Now"}
+                                            : isExpired
+                                                ? "Campaign Ended"
+                                                : connectedAddress?.toLowerCase() === campaign!.owner.toLowerCase()
+                                                    ? "You Are The Owner"
+                                                    : "Fund Now"}
                                 </button>
                             </form>
                         </Form>

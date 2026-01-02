@@ -4,7 +4,7 @@ import { createPublicClient, createWalletClient, custom, EIP1193Provider, http }
 import { sepolia } from 'wagmi/chains';
 
 // Your deployed factory address
-export const factoryAddress = '0x78747BAA22d80580E00b09E0aDA399C9eB62d1b7';
+export const factoryAddress = '0xd164594840847A777f9bf5Be4b3006F73a363598';
 
 // Infura key from environtment variables
 const infuraKey = process.env.NEXT_PUBLIC_INFURA_API_KEY;

@@ -10,6 +10,7 @@ function getCampaignDetailsMulticall(address: Address) {
         { address, abi: crowdfundingAbi as Abi, functionName: 'owner' },
         { address, abi: crowdfundingAbi as Abi, functionName: 'compoundingContributions' },
         { address, abi: crowdfundingAbi as Abi, functionName: 'state' },
+        { address, abi: crowdfundingAbi as Abi, functionName: 'deadline' },
     ];
 }
 
@@ -29,6 +30,9 @@ export type HydratedCampaign = {
     owner: string;
     compounding: bigint;
     state: number;
+    deadline: bigint;      // unix timestamp (seconds)
+    isTimed: boolean;      // helper frontend
+    isExpired: boolean;    // helper frontend
 };
 
 // ─── Hydrate Helper Functions ──────────────────────────────────────
@@ -43,8 +47,12 @@ async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampai
         balance,
         owner,
         compounding,
-        state
-    ] = (await publicClient.multicall({ contracts: multicallCalls })).map(result => result.result);
+        state,
+        deadline
+    ] = (await publicClient.multicall({ contracts: multicallCalls }))
+        .map(result => result.result);
+
+    const now = BigInt(Math.floor(Date.now() / 1000));
 
     return {
         address,
@@ -54,7 +62,10 @@ async function hydrateCampaign(campaign: CampaignStruct): Promise<HydratedCampai
         balance: balance as bigint,
         owner: owner as string,
         compounding: compounding as bigint,
-        state: state as number
+        state: state as number,
+        deadline: deadline as bigint,
+        isTimed: (deadline as bigint) > BigInt(0),
+        isExpired: (deadline as bigint) > BigInt(0) && (deadline as bigint) < now,
     };
 }
 
@@ -65,7 +76,7 @@ async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCa
 
     const hydratedCampaigns = [];
     let resultIndex = 0;
-    const CALLS_PER_CAMPAIGN = 7;
+    const CALLS_PER_CAMPAIGN = 8;
 
     for (const campaign of campaigns) {
         const campaignResults = results.slice(resultIndex, resultIndex + CALLS_PER_CAMPAIGN);
@@ -76,8 +87,11 @@ async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCa
             balance,
             owner,
             compounding,
-            state
+            state,
+            deadline
         ] = campaignResults.map(res => res.result);
+
+        const now = BigInt(Math.floor(Date.now() / 1000));
 
         hydratedCampaigns.push({
             address: campaign.campaignAddress,
@@ -87,7 +101,10 @@ async function hydrateCampaigns(campaigns: CampaignStruct[]): Promise<HydratedCa
             balance: balance as bigint,
             owner: owner as string,
             compounding: compounding as bigint,
-            state: state as number
+            state: state as number,
+            deadline: deadline as bigint,
+            isTimed: (deadline as bigint) > BigInt(0),
+            isExpired: (deadline as bigint) > BigInt(0) && (deadline as bigint) < now,
         });
 
         resultIndex += CALLS_PER_CAMPAIGN;

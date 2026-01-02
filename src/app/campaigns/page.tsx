@@ -28,6 +28,7 @@ type Campaign = {
     owner: string;
     state: number;
     compounding: bigint;
+    deadline: bigint;
 };
 
 const PER_PAGE = 7;

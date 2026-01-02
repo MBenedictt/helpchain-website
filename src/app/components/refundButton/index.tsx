@@ -7,7 +7,7 @@ import { publicClient } from "@/lib/contracts"
 import { toast } from 'sonner';
 import { BanknoteX } from "lucide-react"
 
-export default function RefundButton({ campaignAddress, onSuccess }: { campaignAddress: Address, onSuccess: () => void }) {
+export default function RefundButton({ campaignAddress, onSuccess, totalContribution }: { campaignAddress: Address, onSuccess: () => void, totalContribution?: number }) {
     const [loading, setLoading] = useState(false)
 
     const handleRefund = async () => {
@@ -46,7 +46,7 @@ export default function RefundButton({ campaignAddress, onSuccess }: { campaignA
                 <TooltipTrigger asChild>
                     <AlertDialogTrigger asChild>
                         <button
-                            className="flex items-center gap-3 cursor-pointer bg-white border border-gray-700 font-semibold text-black hover:scale-105 py-2 px-4 max-sm:px-3 rounded transition"
+                            className="flex items-center gap-3 cursor-pointer bg-red-100 border border-red-300 hover:bg-red-200 text-red-600 px-3 py-2 rounded hover:scale-105 transition"
                             disabled={loading}
                         >
                             <BanknoteX size={20} /> <span className='text-sm'>{loading ? "Processing..." : "Refund"}</span>
@@ -62,6 +62,7 @@ export default function RefundButton({ campaignAddress, onSuccess }: { campaignA
                 <AlertDialogHeader>
                     <AlertDialogTitle>Claim Refund?</AlertDialogTitle>
                     <AlertDialogDescription>
+                        The remaining amount you could claim is <span className="font-bold text-black">${totalContribution}</span>. <br /> <br />
                         Are you sure you want to claim a refund for this campaign? This action
                         cannot be undone.
                     </AlertDialogDescription>

@@ -23,6 +23,7 @@ type Campaign = {
   owner: string;
   state: number;
   compounding: bigint;
+  deadline: bigint;
 };
 
 export default function Home() {

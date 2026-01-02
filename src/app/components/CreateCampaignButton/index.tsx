@@ -5,6 +5,11 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createCampaign } from '@/lib/create-campaign';
+import { Calendar } from '../ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Checkbox } from '../ui/checkbox';
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
 
 import {
     Dialog,
@@ -31,14 +36,29 @@ import { toast } from 'sonner';
 import { publicClient } from '@/lib/contracts';
 import { useAccount } from 'wagmi';
 
-const formSchema = z.object({
-    name: z.string().min(1, 'Campaign name is required'),
-    goal: z
-        .string()
-        .min(1, 'Goal is required')
-        .regex(/^\d+$/, 'Must be a positive whole number'),
-    description: z.string().min(1, 'Description is required'),
-})
+const formSchema = z
+    .object({
+        name: z.string().min(1, 'Campaign name is required'),
+        goal: z
+            .string()
+            .min(1, 'Goal is required')
+            .regex(/^\d+$/, 'Must be a positive whole number'),
+        description: z.string().min(1, 'Description is required'),
+        hasDeadline: z.boolean(),
+        deadline: z.date().optional(),
+    })
+    .refine(
+        (data) => {
+            if (data.hasDeadline) {
+                return !!data.deadline;
+            }
+            return true;
+        },
+        {
+            message: 'Please select a deadline date',
+            path: ['deadline'],
+        }
+    );
 
 type CreateCampaignButtonProps = {
     onCampaignCreated?: () => void;
@@ -49,13 +69,15 @@ export default function CreateCampaignButton({ onCampaignCreated }: CreateCampai
     const [dialogOpen, setDialogOpen] = useState(false);
     const { address: connectedAddress } = useAccount();
 
-    const form = useForm({
+    const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: '',
             goal: '',
-            description: ''
-        }
+            description: '',
+            hasDeadline: false,
+            deadline: undefined,
+        },
     });
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -63,10 +85,15 @@ export default function CreateCampaignButton({ onCampaignCreated }: CreateCampai
         try {
             toast.loading("Submitting transaction...");
 
+            const deadlineInSeconds = values.hasDeadline && values.deadline
+                ? BigInt(Math.floor(values.deadline.getTime() / 1000))
+                : BigInt(0);
+
             const txHash = await createCampaign({
                 name: values.name,
                 description: values.description,
-                goal: BigInt(values.goal)
+                goal: BigInt(values.goal),
+                deadline: deadlineInSeconds, // ⬅️ ini
             });
 
             toast.loading("Waiting for confirmation...");
@@ -185,6 +212,69 @@ export default function CreateCampaignButton({ onCampaignCreated }: CreateCampai
                                 </FormItem>
                             )}
                         />
+
+                        <FormField
+                            control={form.control}
+                            name="hasDeadline"
+                            render={({ field }) => (
+                                <FormItem className="flex items-center gap-2">
+                                    <FormControl>
+                                        <Checkbox
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                            className='cursor-pointer'
+                                        />
+                                    </FormControl>
+                                    <FormLabel className="text-sm text-gray-700">
+                                        This campaign has a deadline
+                                    </FormLabel>
+                                </FormItem>
+                            )}
+                        />
+
+                        {form.watch('hasDeadline') && (
+                            <FormField
+                                control={form.control}
+                                name="deadline"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel className="font-[400] text-gray-600">
+                                            Campaign End Date
+                                        </FormLabel>
+
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        variant="outline"
+                                                        className="justify-start text-left font-normal cursor-pointer"
+                                                    >
+                                                        {field.value
+                                                            ? format(field.value, 'PPP')
+                                                            : 'Pick a date'}
+                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={field.value}
+                                                    onSelect={field.onChange}
+                                                    disabled={(date) =>
+                                                        date < new Date() // tidak bisa pilih tanggal lampau
+                                                    }
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+
+                                        <FormMessage className="text-[12px]" />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
 
                         <Button
                             type="submit"

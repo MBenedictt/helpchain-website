@@ -12,6 +12,7 @@ interface CampaignCardProps {
     owner: string;
     compounding: bigint;
     index?: number;
+    deadline: bigint;
 }
 
 function shortenAddress(address: string) {
@@ -26,6 +27,7 @@ export default function CampaignCard({
     balance,
     compounding,
     index = 0, // default to 0
+    deadline,
 }: CampaignCardProps) {
     const progress = Math.min(
         100,
@@ -41,6 +43,26 @@ export default function CampaignCard({
 
     // 🔹 Loop through images (1 → 3 → repeat)
     const image = images[index % images.length];
+
+    const deadlineDate = deadline > BigInt(0)
+        ? new Date(Number(deadline) * 1000)
+        : null;
+
+    const now = Math.floor(Date.now() / 1000);
+
+    const isExpired =
+        deadline > BigInt(0) &&
+        BigInt(now) >= deadline;
+
+    const formattedDeadline = deadlineDate
+        ? isExpired
+            ? "Campaign Ended"
+            : `Ends on ${deadlineDate.toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+            })}`
+        : " ";
 
     return (
         <Link href={`/campaign/${address}`}>
@@ -70,7 +92,8 @@ export default function CampaignCard({
                             {shortenAddress(owner)}
                         </button>
 
-                        <h3 className="font-bold text-gray-900 mb-2 line-clamp-2">{name}</h3>
+                        <h3 className="font-bold text-gray-900 line-clamp-2">{name}</h3>
+                        <p className="text-sm text-gray-600 mb-2 text-right italic">{formattedDeadline}</p>
                     </div>
                     <div>
                         <Progress value={progress} />

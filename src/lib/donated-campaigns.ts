@@ -5,9 +5,7 @@ import { fetchAllCampaigns } from "./campaigns";
 
 export async function fetchDonatedCampaigns(user: Address) {
     const campaigns = await fetchAllCampaigns();
-
     const campaignAddresses = campaigns.map((c) => c.address);
-
     const contributions = await fetchUserContributions(user, campaignAddresses);
 
     const donatedCampaigns = await Promise.all(
@@ -18,7 +16,6 @@ export async function fetchDonatedCampaigns(user: Address) {
                     (camp) => camp.address === c.campaign
                 )!;
 
-                // get latest withdraw request id
                 const withdrawRequestCount = await publicClient.readContract({
                     address: c.campaign,
                     abi: crowdfundingAbi,
@@ -26,25 +23,24 @@ export async function fetchDonatedCampaigns(user: Address) {
                 }) as bigint;
 
                 let hasPendingVote = false;
-                let canRefund = false;
 
                 if (withdrawRequestCount > BigInt(0)) {
-                    // check latest request
                     const latestId = withdrawRequestCount;
+
                     const req = await publicClient.readContract({
                         address: c.campaign,
                         abi: crowdfundingAbi,
                         functionName: "getWithdrawRequest",
                         args: [latestId],
                     }) as [
-                            bigint,  // id
-                            bigint,  // amount
-                            bigint,  // totalYesWeight
-                            bigint,  // totalNoWeight
-                            bigint,  // startTime
-                            bigint,  // endTime
-                            boolean, // finalized
-                            boolean  // approved
+                            bigint,
+                            bigint,
+                            bigint,
+                            bigint,
+                            bigint,
+                            bigint,
+                            boolean,
+                            boolean
                         ];
 
                     const vote = await publicClient.readContract({
@@ -52,17 +48,15 @@ export async function fetchDonatedCampaigns(user: Address) {
                         abi: crowdfundingAbi,
                         functionName: "getVote",
                         args: [latestId, user],
-                    });
+                    }) as number;
 
                     hasPendingVote = !req[6] && vote === 0;
-                    canRefund = campaignData.state === 2 || vote === 2;
                 }
 
                 return {
                     ...c,
                     name: campaignData.name,
                     hasPendingVote,
-                    canRefund,
                 };
             })
     );

@@ -56,6 +56,7 @@ type Campaign = {
     owner: string;
     state: number;
     compounding: bigint;
+    deadline: bigint;
 };
 
 type Contribution = {
@@ -64,7 +65,6 @@ type Contribution = {
     totalContribution: number;
     usedContribution: number;
     hasPendingVote: boolean;
-    canRefund: boolean;
 };
 
 export type CampaignWithWithdrawals = Campaign & {
@@ -235,186 +235,209 @@ export default function Dashboard() {
                                 </p>
                             ) : (
                                 <div className="gap-5">
-                                    {[...campaigns].reverse().map((c, i) => (
-                                        <div
-                                            key={i}
-                                            className="p-5"
-                                        >
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h2 className="text-3xl max-lg:text-2xl max-md:text-xl font-bold">{c.name}</h2>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Link
-                                                            href={`/campaign/${c.address}`}
-                                                            className="text-gray-400 hover:text-gray-600 bg-gray-100 p-1 rounded transition"
-                                                        >
-                                                            <ExternalLink className='w-[20px] h-[20px] max-md:w-[16px] max-md:h-[16px]' />
-                                                        </Link>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>View Campaign</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </div>
+                                    {[...campaigns].reverse().map((c, i) => {
+                                        const deadlineDate =
+                                            c.deadline > BigInt(0)
+                                                ? new Date(Number(c.deadline) * 1000)
+                                                : null;
 
-                                            <Progress value={Number((c.compounding * BigInt(100)) / c.goal)} className='mt-5 mb-3' />
+                                        const isExpired =
+                                            c.deadline > BigInt(0) &&
+                                            BigInt(Math.floor(Date.now() / 1000)) >= c.deadline;
 
-                                            <div className='flex justify-between items-center max-sm:flex-col-reverse max-sm:items-start max-sm:gap-2'>
-                                                <div
-                                                    className={`px-3 py-1 rounded-full text-[10px] font-medium w-fit
-                                                    ${c.state === 0
-                                                            ? 'bg-green-100 text-green-800'
-                                                            : c.state === 1
-                                                                ? 'bg-blue-100 text-blue-800'
-                                                                : 'bg-red-100 text-red-800'
-                                                        }`}
-                                                >
-                                                    {c.state === 0 ? 'Active' : c.state === 1 ? 'Completed' : 'Failed'}
+                                        const formattedDeadline = deadlineDate
+                                            ? isExpired
+                                                ? "Campaign Ended"
+                                                : `Ends on ${deadlineDate.toLocaleDateString("en-GB", {
+                                                    day: "2-digit",
+                                                    month: "long",
+                                                    year: "numeric",
+                                                })}`
+                                            : " ";
+
+                                        return (
+                                            <div
+                                                key={i}
+                                                className="p-5"
+                                            >
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <h2 className="text-3xl max-lg:text-2xl max-md:text-xl font-bold">{c.name}</h2>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Link
+                                                                href={`/campaign/${c.address}`}
+                                                                className="text-gray-400 hover:text-gray-600 bg-gray-100 p-1 rounded transition"
+                                                            >
+                                                                <ExternalLink className='w-[20px] h-[20px] max-md:w-[16px] max-md:h-[16px]' />
+                                                            </Link>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>View Campaign</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
                                                 </div>
 
+                                                <p className='text-sm text-gray-500 italic'>{formattedDeadline}</p>
 
-                                                <p className="text-gray-500 font-semibold">
-                                                    ${Number(c!.compounding)} / ${c.goal.toString()} Goal
+                                                <Progress value={Number((c.compounding * BigInt(100)) / c.goal)} className='mt-5 mb-3' />
+
+                                                <div className='flex justify-between items-center max-sm:flex-col-reverse max-sm:items-start max-sm:gap-2'>
+                                                    <div
+                                                        className={`px-3 py-1 rounded-full text-[10px] font-medium w-fit
+                                                    ${c.state === 0
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : c.state === 1
+                                                                    ? 'bg-blue-100 text-blue-800'
+                                                                    : 'bg-red-100 text-red-800'
+                                                            }`}
+                                                    >
+                                                        {c.state === 0 ? 'Active' : c.state === 1 ? 'Completed' : 'Failed'}
+                                                    </div>
+
+
+                                                    <p className="text-gray-500 font-semibold">
+                                                        ${Number(c!.compounding)} / ${c.goal.toString()} Goal
+                                                    </p>
+                                                </div>
+
+                                                <p className="text-gray-500 text-sm mt-4">
+                                                    Campaign Balance:
                                                 </p>
-                                            </div>
+                                                <p className="text-black text-xl font-semibold">
+                                                    ${c.balance.toString()}
+                                                </p>
 
-                                            <p className="text-gray-500 text-sm mt-4">
-                                                Campaign Balance:
-                                            </p>
-                                            <p className="text-black text-xl font-semibold">
-                                                ${c.balance.toString()}
-                                            </p>
+                                                <div className="mt-4 flex justify-start gap-2">
+                                                    {c.state === 0 && (() => {
+                                                        const active = c.activeWithdrawals[0];
 
-                                            <div className="mt-4 flex justify-start gap-2">
-                                                {c.state === 0 && (() => {
-                                                    const active = c.activeWithdrawals[0];
+                                                        if (active) {
+                                                            if (!active.finalized && active.requires_proof) {
+                                                                return (
+                                                                    <div className='w-full flex justify-between items-center max-sm:flex-col bg-white border border-gray-700 p-5 rounded'>
+                                                                        <div>
+                                                                            <h3 className="text-gray-700 semibold text-sm">
+                                                                                You have an active withdrawal request for this campaign.
+                                                                            </h3>
+                                                                            <h2 className='font-bold text-3xl mt-1'>${active.amount}</h2>
+                                                                            <p className="text-[12px] text-gray-500 mt-2">
+                                                                                Backers have covered{" "}
+                                                                                <span className="font-semibold">
+                                                                                    {active.yesPercentage >= 100
+                                                                                        ? `100%`
+                                                                                        : `${active.yesPercentage.toFixed(2)}%`}
+                                                                                </span>{" "}
+                                                                                of the requested amount approved.
+                                                                            </p>
+                                                                        </div>
 
-                                                    if (active) {
-                                                        if (!active.finalized && active.requires_proof) {
-                                                            return (
-                                                                <div className='w-full flex justify-between items-center max-sm:flex-col bg-white border border-gray-700 p-5 rounded'>
-                                                                    <div>
-                                                                        <h3 className="text-gray-700 semibold text-sm">
-                                                                            You have an active withdrawal request for this campaign.
-                                                                        </h3>
-                                                                        <h2 className='font-bold text-3xl mt-1'>${active.amount}</h2>
-                                                                        <p className="text-[12px] text-gray-500 mt-2">
-                                                                            Backers have covered{" "}
-                                                                            <span className="font-semibold">
-                                                                                {active.yesPercentage >= 100
-                                                                                    ? `100%`
-                                                                                    : `${active.yesPercentage.toFixed(2)}%`}
-                                                                            </span>{" "}
-                                                                            of the requested amount approved.
-                                                                        </p>
+                                                                        {(() => {
+                                                                            const deadline = new Date(active.voting_deadline);
+                                                                            const now = new Date();
+
+                                                                            if (isAfter(now, deadline)) {
+                                                                                return (
+                                                                                    <div className='max-md:mt-5 flex max-md:w-full items-center'>
+                                                                                        <FinalizedButton
+                                                                                            campaignAddress={c.address as Address}
+                                                                                            withdrawId={BigInt(active.contract_withdraw_id)}
+                                                                                            onSuccess={loadUserCampaigns}
+                                                                                            amount={active.amount}
+                                                                                            yesWeight={active.yesWeight}
+                                                                                            dbId={active.id}
+                                                                                        />
+                                                                                    </div>
+                                                                                );
+                                                                            } else {
+                                                                                return (
+                                                                                    <div className='max-md:mt-5 flex max-md:w-full items-center'>
+                                                                                        <p className="text-xs text-gray-500 mt-3">
+                                                                                            You can finalize it in{" "}
+                                                                                            <span className="font-semibold">
+                                                                                                {formatDistanceToNowStrict(deadline, { addSuffix: false })}
+                                                                                            </span>
+                                                                                        </p>
+                                                                                    </div>
+                                                                                );
+                                                                            }
+                                                                        })()}
                                                                     </div>
+                                                                );
+                                                            }
 
-                                                                    {(() => {
-                                                                        const deadline = new Date(active.voting_deadline);
-                                                                        const now = new Date();
-
-                                                                        if (isAfter(now, deadline)) {
-                                                                            return (
-                                                                                <div className='max-md:mt-5 flex max-md:w-full items-center'>
-                                                                                    <FinalizedButton
-                                                                                        campaignAddress={c.address as Address}
-                                                                                        withdrawId={BigInt(active.contract_withdraw_id)}
-                                                                                        onSuccess={loadUserCampaigns}
-                                                                                        amount={active.amount}
-                                                                                        yesWeight={active.yesWeight}
-                                                                                        dbId={active.id}
-                                                                                    />
-                                                                                </div>
-                                                                            );
-                                                                        } else {
-                                                                            return (
-                                                                                <div className='max-md:mt-5 flex max-md:w-full items-center'>
-                                                                                    <p className="text-xs text-gray-500 mt-3">
-                                                                                        You can finalize it in{" "}
-                                                                                        <span className="font-semibold">
-                                                                                            {formatDistanceToNowStrict(deadline, { addSuffix: false })}
-                                                                                        </span>
-                                                                                    </p>
-                                                                                </div>
-                                                                            );
-                                                                        }
-                                                                    })()}
-                                                                </div>
-                                                            );
+                                                            if (active.finalized && active.requires_proof) {
+                                                                return (
+                                                                    <div className='w-full border border-gray-700 rounded flex justify-between items-center gap-2 p-5'>
+                                                                        <p className='font-semibold text-black text-sm'>
+                                                                            Please submit proof of the previous withdrawal usages before requesting a new withdrawal.
+                                                                        </p>
+                                                                        <SubmitProofButton
+                                                                            campaignAddress={c.address as Address}
+                                                                            withdrawId={BigInt(c.activeWithdrawals[0].contract_withdraw_id)}
+                                                                            dbId={c.activeWithdrawals[0].id}
+                                                                            onSuccess={loadUserCampaigns}
+                                                                        />
+                                                                    </div>
+                                                                );
+                                                            }
                                                         }
 
-                                                        if (active.finalized && active.requires_proof) {
-                                                            return (
-                                                                <div className='w-full border border-gray-700 rounded flex justify-between items-center gap-2 p-5'>
-                                                                    <p className='font-semibold text-black text-sm'>
-                                                                        Please submit proof of the previous withdrawal usages before requesting a new withdrawal.
-                                                                    </p>
-                                                                    <SubmitProofButton
-                                                                        campaignAddress={c.address as Address}
-                                                                        withdrawId={BigInt(c.activeWithdrawals[0].contract_withdraw_id)}
-                                                                        dbId={c.activeWithdrawals[0].id}
-                                                                        onSuccess={loadUserCampaigns}
-                                                                    />
-                                                                </div>
-                                                            );
-                                                        }
-                                                    }
+                                                        return <WithdrawButton campaignAddress={c.address as Address} onSuccess={loadUserCampaigns} />;
+                                                    })()}
 
-                                                    return <WithdrawButton campaignAddress={c.address as Address} onSuccess={loadUserCampaigns} />;
-                                                })()}
+                                                    {c.state === 0 &&
+                                                        (c.activeWithdrawals.length === 0 &&
+                                                            (c.compounding === BigInt(0) || c.compounding >= c.goal)) &&
+                                                        c.balance === BigInt(0) && (
+                                                            <AlertDialog>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <AlertDialogTrigger asChild>
+                                                                            <button
+                                                                                className="cursor-pointer bg-red-100 border border-red-300 hover:bg-red-200 text-red-600 px-3 py-2 rounded hover:scale-105 transition"
+                                                                            >
+                                                                                <Ban size={16} />
+                                                                            </button>
+                                                                        </AlertDialogTrigger>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>End Campaign</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
 
-                                                {c.state === 0 &&
-                                                    (c.activeWithdrawals.length === 0 &&
-                                                        (c.compounding === BigInt(0) || c.compounding >= c.goal)) &&
-                                                    c.balance === BigInt(0) && (
-                                                        <AlertDialog>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <AlertDialogTrigger asChild>
-                                                                        <button
-                                                                            className="cursor-pointer bg-red-100 border border-red-300 hover:bg-red-200 text-red-600 px-3 py-2 rounded hover:scale-105 transition"
+                                                                <AlertDialogContent>
+                                                                    <AlertDialogHeader>
+                                                                        <AlertDialogTitle>End Campaign?</AlertDialogTitle>
+                                                                        <AlertDialogDescription>
+                                                                            <strong className="text-black font-semibold">
+                                                                                This will finalize the campaign permanently.
+                                                                            </strong>
+                                                                            <br />
+                                                                            - If no withdrawals happened, it will be marked{" "}
+                                                                            <strong>Failed</strong>.
+                                                                            <br />
+                                                                            - Otherwise, it will be marked{" "}
+                                                                            <strong>Successful</strong>.
+                                                                        </AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <AlertDialogFooter>
+                                                                        <AlertDialogCancel className="cursor-pointer">
+                                                                            Cancel
+                                                                        </AlertDialogCancel>
+                                                                        <AlertDialogAction
+                                                                            className="cursor-pointer bg-lime-300 hover:bg-lime-400 text-black"
+                                                                            onClick={() => handleEndCampaign(c.address as Address)}
                                                                         >
-                                                                            <Ban size={16} />
-                                                                        </button>
-                                                                    </AlertDialogTrigger>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>End Campaign</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>End Campaign?</AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        <strong className="text-black font-semibold">
-                                                                            This will finalize the campaign permanently.
-                                                                        </strong>
-                                                                        <br />
-                                                                        - If no withdrawals happened, it will be marked{" "}
-                                                                        <strong>Failed</strong>.
-                                                                        <br />
-                                                                        - Otherwise, it will be marked{" "}
-                                                                        <strong>Successful</strong>.
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel className="cursor-pointer">
-                                                                        Cancel
-                                                                    </AlertDialogCancel>
-                                                                    <AlertDialogAction
-                                                                        className="cursor-pointer bg-lime-300 hover:bg-lime-400 text-black"
-                                                                        onClick={() => handleEndCampaign(c.address as Address)}
-                                                                    >
-                                                                        End Campaign
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    )}
+                                                                            End Campaign
+                                                                        </AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
+                                                        )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </TabsContent>
@@ -470,53 +493,34 @@ export default function Dashboard() {
                                                         </div>
                                                     )}
 
-                                                    {c.canRefund && (
-                                                        <div className="w-full flex max-[540px]:flex-col items-center max-[540px]:items-end max-[540px]:gap-3 justify-between border border-red-700 bg-red-50 rounded p-3 mb-3">
-                                                            <p className="font-semibold text-red-500 text-sm">
-                                                                The campaign has failed or you chose to walk out from this campaign, you could claim the remaining funds.
-                                                            </p>
-                                                        </div>
-                                                    )}
-
-                                                    {c.canRefund ? (
-                                                        <>
-                                                            <div>
-                                                                <p className="font-[400] text-gray-700">The remaining amount you could claim is</p>
-                                                                <h2 className="text-3xl font-bold mt-1 mb-2">
-                                                                    ${c.totalContribution}
-                                                                </h2>
-                                                            </div>
-
-                                                            <div className="mt-4 flex justify-start gap-2">
-                                                                <RefundButton campaignAddress={c.campaign} onSuccess={loadDonatedCampaigns} />
-                                                            </div>
-                                                        </>
-                                                    ) : (
+                                                    <div>
                                                         <div>
-                                                            <div>
-                                                                <p className="font-[400] text-gray-700">You have contributed a total of</p>
-                                                                <h2 className="text-3xl font-bold mt-1 mb-2">
-                                                                    ${c.totalContribution + c.usedContribution}
-                                                                </h2>
-                                                            </div>
-
-                                                            <p className="text-gray-600 mb-3 text-sm">
-                                                                To{" "}
-                                                                <span className="font-bold text-black">
-                                                                    <Link
-                                                                        href={`/campaign/${c.campaign}`}
-                                                                        target="_blank"
-                                                                        className="cursor-pointer hover:underline"
-                                                                    >
-                                                                        {shortenAddress(c.campaign)}
-                                                                    </Link>
-                                                                </span>
-                                                                {" "}&ldquo;{c.name}&rdquo; Campaign
-                                                            </p>
-
-                                                            <p className="text-gray-600 text-sm italic">The campaign already used ${c.usedContribution} of ${c.totalContribution + c.usedContribution}</p>
+                                                            <p className="font-[400] text-gray-700">You have contributed a total of</p>
+                                                            <h2 className="text-3xl font-bold mt-1 mb-2">
+                                                                ${c.totalContribution + c.usedContribution}
+                                                            </h2>
                                                         </div>
-                                                    )}
+
+                                                        <p className="text-gray-600 mb-3 text-sm">
+                                                            To{" "}
+                                                            <span className="font-bold text-black">
+                                                                <Link
+                                                                    href={`/campaign/${c.campaign}`}
+                                                                    target="_blank"
+                                                                    className="cursor-pointer hover:underline"
+                                                                >
+                                                                    {shortenAddress(c.campaign)}
+                                                                </Link>
+                                                            </span>
+                                                            {" "}&ldquo;{c.name}&rdquo; Campaign
+                                                        </p>
+
+                                                        <p className="text-gray-600 text-sm italic">The campaign already used ${c.usedContribution} of ${c.totalContribution + c.usedContribution}</p>
+                                                    </div>
+
+                                                    <div className="mt-4 flex justify-start gap-2">
+                                                        <RefundButton campaignAddress={c.campaign} onSuccess={loadDonatedCampaigns} totalContribution={c.totalContribution} />
+                                                    </div>
                                                 </div>
                                             </div>
                                         );

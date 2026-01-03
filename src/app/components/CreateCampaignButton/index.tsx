@@ -81,48 +81,58 @@ export default function CreateCampaignButton({ onCampaignCreated }: CreateCampai
     });
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
+        if (!connectedAddress) return;
+
         setCreating(true);
         try {
             toast.loading("Submitting transaction...");
 
-            const deadlineInSeconds = values.hasDeadline && values.deadline
-                ? BigInt(Math.floor(values.deadline.getTime() / 1000))
-                : BigInt(0);
+            const deadlineInSeconds =
+                values.hasDeadline && values.deadline
+                    ? BigInt(Math.floor(values.deadline.getTime() / 1000))
+                    : BigInt(0);
 
             const txHash = await createCampaign({
                 name: values.name,
                 description: values.description,
                 goal: BigInt(values.goal),
-                deadline: deadlineInSeconds, // ⬅️ ini
+                deadline: deadlineInSeconds,
             });
 
             toast.loading("Waiting for confirmation...");
-            await publicClient.waitForTransactionReceipt({ hash: txHash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+            // 🔹 OPTIONAL: ambil block timestamp biar konsisten dengan on-chain
+            const block = await publicClient.getBlock({
+                blockNumber: receipt.blockNumber,
+            });
+
+            // 🔹 POST ke Supabase
+            await fetch("/api/receiver/bootstrap", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    receiverAddress: connectedAddress,
+                    txHash,
+                    blockTimestampSec: Number(block.timestamp),
+                }),
+            });
 
             toast.dismiss();
-            toast.success("Campaign added successfully!", {
-                closeButton: true,
-                position: "top-right",
-            });
+            toast.success("Campaign added successfully!");
 
             form.reset();
             setDialogOpen(false);
-
-            if (onCampaignCreated) {
-                onCampaignCreated();
-            }
-
+            onCampaignCreated?.();
         } catch (error) {
             toast.dismiss();
-            console.error("Failed to create campaign:", error);
-            toast.error("Failed to create campaign, try again later.", {
-                closeButton: true,
-                position: "top-right",
-            });
+            console.error(error);
+            toast.error("Failed to create campaign");
         } finally {
             setCreating(false);
         }
     };
+
 
     return (
         <Dialog

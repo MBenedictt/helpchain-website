@@ -35,6 +35,13 @@ import { confirmWithdrawRequest } from "@/lib/confirm";
 import { differenceInDays } from "date-fns";
 import { fetchWithdrawalLogs, WithdrawalLog } from "@/lib/withdraw-logs";
 import WithdrawHistory from "@/app/components/WithdrawalLogs";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/app/components/ui/tooltip";
+import { ShieldCheck } from "lucide-react";
 
 function formatVotingDeadline(createdAt: string, deadline: string) {
     const created = new Date(createdAt);
@@ -79,6 +86,10 @@ export default function CampaignPage() {
     const { address: connectedAddress } = useAccount();
     const [isBackerUser, setIsBackerUser] = useState(false);
     const [loadingVote, setLoadingVote] = useState(false);
+    const [trustCount, setTrustCount] = useState<number>(0);
+    const [flagCount, setFlagCount] = useState<number>(0);
+    const [userTrustVote, setUserTrustVote] =
+        useState<"trust" | "flag" | null>(null);
 
     const form = useForm<z.infer<typeof donationSchema>>({
         resolver: zodResolver(donationSchema),
@@ -124,6 +135,22 @@ export default function CampaignPage() {
                 return;
             }
             setCampaign(data);
+
+            // fetch trust count
+            const res = await fetch(
+                `/api/receiver/trust-count?receiver=${data.owner}`
+            );
+            const json = await res.json();
+            setTrustCount(json.trustCount ?? 0);
+            setFlagCount(json.flagCount ?? 0);
+
+            if (connectedAddress) {
+                const res = await fetch(
+                    `/api/receiver/my-trust?receiver=${data.owner}&voter=${connectedAddress}`
+                );
+                const json = await res.json();
+                setUserTrustVote(json.voteType ?? null);
+            }
 
             // load withdrawals
             const activeWithdrawals = await fetchActiveWithdrawalRequests(
@@ -291,6 +318,44 @@ export default function CampaignPage() {
                 year: "numeric",
             })}`
         : " ";
+
+    const submitTrust = async (voteType: "trust" | "flag") => {
+        if (!connectedAddress || !campaign) return;
+
+        try {
+            toast.loading("Submitting Choice...");
+
+            const res = await fetch("/api/receiver/trust", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    receiverAddress: campaign.owner,
+                    voterAddress: connectedAddress,
+                    voteType,
+                }),
+            });
+
+            const json = await res.json();
+            if (!json.ok) throw new Error(json.error);
+
+            setUserTrustVote(voteType);
+
+            // optimistic update
+            if (voteType === "trust") {
+                setTrustCount((c) => c + 1);
+                if (userTrustVote === "flag") setFlagCount((c) => c - 1);
+            } else {
+                setFlagCount((c) => c + 1);
+                if (userTrustVote === "trust") setTrustCount((c) => c - 1);
+            }
+
+            toast.dismiss();
+            toast.success("Choice submitted!");
+        } catch (e) {
+            toast.dismiss();
+            toast.error("Failed to submit choice");
+        }
+    };
 
     return (
         <div className="font-inter">
@@ -484,15 +549,68 @@ export default function CampaignPage() {
                             >
                                 {shortenAddress(campaign!.address)}
                             </Link>
-                            <p className="mb-1 mt-2 font-bold">Organized by: </p>
-                            <Link
-                                href={`https://sepolia.etherscan.io/address/${campaign!.owner}`}
-                                target="_blank"
-                                className="text-gray-500 hover:text-gray-600 hover:underline"
-                            >
-                                {shortenAddress(campaign!.owner)}
-                            </Link>
+                            <p className="mb-1 mt-2 font-bold">Organized by:</p>
+
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href={`https://sepolia.etherscan.io/address/${campaign!.owner}`}
+                                    target="_blank"
+                                    className="text-gray-500 hover:text-gray-600 hover:underline"
+                                >
+                                    {shortenAddress(campaign!.owner)}
+                                </Link>
+
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <ShieldCheck
+                                                className={`w-4 h-4 cursor-pointer ${flagCount > trustCount ? "text-red-500" : trustCount >= 2 ? "text-lime-500" : "text-gray-400"
+                                                    }`}
+                                            />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {flagCount > trustCount ? (
+                                                <p className="text-sm">
+                                                    ⚠ Community raised concerns
+                                                    <br />
+                                                    {flagCount} flags · {trustCount} trusts
+                                                </p>
+                                            ) : trustCount > 0 ? (
+                                                <p className="text-sm">
+                                                    Trusted by <b>{trustCount}</b>{" "}
+                                                    {trustCount === 1 ? "person" : "people"}
+                                                </p>
+                                            ) : (
+                                                <p className="text-sm">
+                                                    No reputation yet
+                                                </p>
+                                            )}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+
+                            {connectedAddress &&
+                                !userTrustVote &&
+                                connectedAddress.toLowerCase() !== campaign!.owner.toLowerCase() && (
+                                    <p className="text-sm italic text-gray-400 mt-1">
+                                        Trust this campaign organizer?{" "}
+                                        <span
+                                            onClick={() => submitTrust("trust")}
+                                            className="underline text-lime-500 font-semibold cursor-pointer"
+                                        >
+                                            Yes
+                                        </span>{" "}
+                                        <span
+                                            onClick={() => submitTrust("flag")}
+                                            className="underline text-red-500 font-semibold cursor-pointer"
+                                        >
+                                            No
+                                        </span>
+                                    </p>
+                                )}
                         </div>
+
                         <h1 className="mb-2 font-bold">Description</h1>
                         <p className="text-gray-500 mb-2">{campaign!.description}</p>
                         <div className="mt-4 pt-4 border-t border-gray-300">
